@@ -1,0 +1,16 @@
+---
+project:
+  type: website
+
+title: "Página web repositorio"
+author: "Valeria Aguirre"
+
+website:
+  navbar:
+    left:
+      - text: "Inicio"
+        href: index.qmd
+      - text: "Proyectos"
+        href: proyectos.qmd
+
+---
