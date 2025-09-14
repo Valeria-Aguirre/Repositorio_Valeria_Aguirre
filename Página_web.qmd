@@ -13,4 +13,34 @@ website:
       - text: "Proyectos"
         href: proyectos.qmd
 
+format:
+  html:
+    theme: cosmo   # podés cambiarlo por cualquier tema disponible
+
 ---
+
+---
+title: "Bienvenida"
+---
+
+# ¡Hola! Soy Valeria Aguirre
+
+Bienvenida a mi página de proyectos personales en R y Quarto.  
+Aquí voy a compartir mis proyectos de análisis de datos, visualizaciones y más.
+
+- [Proyectos](proyectos.qmd)
+
+---
+title: "Mis Proyectos"
+---
+
+# Mis Proyectos
+
+Aquí van algunos de mis proyectos personales en R:
+
+1. Proyecto A - descripción breve
+2. Proyecto B - descripción breve
+3. Proyecto C - descripción breve
+
+Cada proyecto puede tener un enlace a su carpeta o a un informe `.html`.
+
