@@ -1,0 +1,13 @@
+---
+title: "Mis Proyectos"
+---
+
+# Mis Proyectos
+
+Aquí están algunos de mis proyectos destacados en R:
+
+1. **Análisis de Datos de Encuestas** – Visualizaciones y reportes estadísticos.
+2. **Dashboard Interactivo** – Creado con `Shiny` y visualizaciones `ggplot2`.
+3. **Proyectos de Investigación Social** – Limpieza de datos y análisis cuantitativo.
+
+Cada proyecto puede incluir un enlace a código, informe o visualización interactiva.

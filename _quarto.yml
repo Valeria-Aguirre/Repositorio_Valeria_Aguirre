@@ -1,0 +1,28 @@
+project:
+  type: website
+
+title: "Portfolio de Valeria Aguirre"
+author: "Valeria Aguirre"
+
+website:
+  navbar:
+    left:
+      - text: "Inicio"
+        href: index.qmd
+      - text: "Proyectos"
+        href: proyectos.qmd
+        
+    right:
+      - icon: github
+        href: https://github.com/Valeria-Aguirre
+      - icon: linkedin
+        href: https://www.linkedin.com/in/valeria-mariana-aguirre/
+
+format:
+  html:
+    theme: lumen          # minimalista y profesional
+    css: css-styles.css   # CSS personalizado
+    font-sans: "Helvetica, Arial, sans-serif"
+    font-mono: "Fira Code"
+
+  

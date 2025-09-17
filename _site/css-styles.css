@@ -1,0 +1,61 @@
+/* Colores principales y fondo */
+body {
+  background-color: #ffffff !important;
+  color: #000000 !important;   /* texto normal en negro */
+  line-height: 1.6;
+  padding: 20px;
+  font-weight: normal; /* quitar negrita */
+}
+
+/* Encabezados */
+h1, h2, h3 {
+  color: #701705 !important; 
+  font-weight: 600 !important;  /* encabezados siguen en negrita */
+}
+
+/* Párrafos */
+p {
+  font-weight: normal !important;  /* párrafos normales, sin negrita */
+}
+
+/* Enlaces generales */
+a {
+  color: #E91E63 !important;  /* rosa/coral minimalista */
+  text-decoration: none;
+  font-weight: normal !important;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Botones */
+.button, .btn {
+  background-color: #701705 !important;
+  color: white !important;
+  padding: 8px 16px;
+  border-radius: 5px;
+  text-decoration: none;
+}
+
+/* Imagen de perfil circular */
+img {
+  border-radius: 50%;
+}
+
+/* Navbar */
+.navbar {
+  background-color: #701705 !important;
+  border-bottom: 1px solid #ddd !important;
+}
+
+.navbar a, .navbar-nav li a {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.navbar a:hover, .navbar-nav li a:hover {
+  color: #E91E63 !important;
+}
+
+

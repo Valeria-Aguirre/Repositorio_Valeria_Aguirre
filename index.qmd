@@ -1,0 +1,10 @@
+---
+title: "Bienvenida"
+---
+
+# ¡Hola! Soy Valeria Aguirre
+
+Bienvenida a mi portfolio de proyectos personales en R y análisis de datos. ![foto](foto.jpg)\
+Aquí comparto mis trabajos, visualizaciones y análisis para que reclutadores y colegas puedan conocer mi trabajo.
+
+-   [Mis Proyectos](proyectos.qmd)
