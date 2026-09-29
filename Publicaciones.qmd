@@ -20,7 +20,7 @@ Acá podés consultar mis publicaciones, informes técnicos, anuarios estadísti
 
 Informe sobre el trabajo realizado por representantes miembros de la Red Iberoamericana de Indicadores de Ciencia y Tecnología (RICYT), orientado a la construcción de una agenda para analizar la situación actual y los desafíos futuros de los relevamientos de percepción pública de la ciencia y la tecnología.
 
-[Ver](https://oei.int/wp-content/uploads/2026/08/papeles-31.pdf)
+[Ver](https://oei.int/wp-content/uploads/2026/08/papeles-31.pdf){.btn .btn-primary .btn-sm role="button" target="_blank"}
 :::
 :::::
 
