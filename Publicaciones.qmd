@@ -6,7 +6,7 @@ format:
     css: styles.css
 ---
 
-Acá podés consultar mis publicaciones, informes técnicos, anuarios estadísticos y capítulos de libros desarrollados en el ámbito de ciencia, tecnología y sociedad.
+Acá se puede consultar mis publicaciones, informes técnicos, anuarios estadísticos y capítulos de libros desarrollados en el ámbito de ciencia, tecnología y sociedad.
 
 ::::: pub-row
 ::: pub-img
