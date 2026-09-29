@@ -1,52 +1,46 @@
-/* Colores principales y fondo */
+/* ==========================================
+   1. PALETA DE COLORES Y ESTILOS GENERALES
+   ========================================== */
+:root {
+  --color-1: #F6E1CC; /* beige claro */
+  --color-2: #AC424C; /* rojo medio */
+  --color-3: #660519; /* rojo oscuro */
+  --color-4: #331219; /* bordo profundo */
+  --color-5: #2C0E10; /* casi negro */
+}
+
 body {
   background-color: #ffffff !important;
-  color: #000000 !important;   /* texto normal en negro */
+  color: var(--color-5) !important;
   line-height: 1.6;
   padding: 20px;
-  font-weight: normal; /* quitar negrita */
+  font-weight: normal;
 }
 
-/* Encabezados */
 h1, h2, h3 {
-  color: #701705 !important; 
-  font-weight: 600 !important;  /* encabezados siguen en negrita */
+  color: var(--color-3) !important; 
+  font-weight: 600 !important;
 }
 
-/* Párrafos */
 p {
-  font-weight: normal !important;  /* párrafos normales, sin negrita */
+  font-weight: normal !important;
 }
 
-/* Enlaces generales */
 a {
-  color: #E91E63 !important;  /* rosa/coral minimalista */
+  color: var(--color-2) !important;
   text-decoration: none;
   font-weight: normal !important;
 }
 
 a:hover {
+  color: var(--color-3) !important;
   text-decoration: underline;
-}
-
-/* Botones */
-.button, .btn {
-  background-color: #701705 !important;
-  color: white !important;
-  padding: 8px 16px;
-  border-radius: 5px;
-  text-decoration: none;
-}
-
-/* Imagen de perfil circular */
-img {
-  border-radius: 50%;
 }
 
 /* Navbar */
 .navbar {
-  background-color: #701705 !important;
-  border-bottom: 1px solid #ddd !important;
+  background-color: var(--color-2) !important;
+  border-bottom: 1px solid var(--color-1) !important;
 }
 
 .navbar a, .navbar-nav li a {
@@ -55,7 +49,147 @@ img {
 }
 
 .navbar a:hover, .navbar-nav li a:hover {
-  color: #E91E63 !important;
+  color: var(--color-1) !important;
+}
+
+/* Botones general */
+.button, .btn {
+  background-color: var(--color-2) !important;
+  color: #ffffff !important;
+  padding: 8px 16px;
+  border-radius: 5px;
+  text-decoration: none;
+  display: inline-block;
+  border: none;
+}
+
+.button:hover, .btn:hover {
+  background-color: var(--color-3) !important;
+  color: #ffffff !important;
+  text-decoration: none;
+}
+
+.btn-sm {
+  padding: 5px 12px !important;
+  font-size: 0.85rem !important;
+}
+
+/* Foto de perfil */
+.profile-photo {
+  width: 120px;
+  height: 120px;
+  float: left;
+  margin-right: 20px;
+  margin-bottom: 10px;
+  border-radius: 50% !important;
+  object-fit: cover;
 }
 
 
+/* ==========================================
+   2. SECCIÓN PROYECTOS (Tarjetas Verticales)
+   ========================================== */
+.card {
+  background-color: #f7f7f7;
+  border-radius: 12px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  color: var(--color-5);
+  overflow: hidden;
+  margin-bottom: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-2);
+}
+
+.card img {
+  width: 100% !important;
+  height: 180px !important;            /* Fijamos la altura para que todas sean iguales */
+  object-fit: cover !important;        /* Recorta sin deformar la imagen */
+  border-radius: 8px !important;        /* Esquinas suavizadas, NO circulares */
+  margin-bottom: 12px !important;
+  transition: transform 0.3s ease;
+}
+
+.card:hover img {
+  transform: scale(1.02);
+}
+
+.card h3 {
+  color: var(--color-3) !important;
+  margin-top: 5px !important;
+  margin-bottom: 8px !important;
+  font-size: 1.15rem !important;
+}
+
+
+/* ==========================================
+   3. SECCIÓN PUBLICACIONES (Tarjetas Horizontales)
+   ========================================== */
+.pub-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pub-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-color: var(--color-2);
+}
+
+.pub-img {
+  flex: 0 0 170px !important;  
+  width: 170px !important;     
+  margin-right: 24px !important;
+}
+
+.pub-img img {
+  width: 100% !important;
+  max-width: 170px !important; /* Antes estaba en 130px */
+  height: 220px !important;    /* Antes estaba en 160px para mayor presencia */
+  object-fit: cover !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  margin: 0 !important;
+}
+
+.pub-text {
+  flex: 1 !important;
+}
+
+.pub-text h3 {
+  margin-top: 0 !important;
+  margin-bottom: 6px !important;
+  font-size: 1.2rem !important;
+}
+
+@media (max-width: 600px) {
+  .pub-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .pub-img {
+    margin-right: 0 !important;
+    margin-bottom: 12px !important;
+    width: 100% !important;
+  }
+  .pub-img img {
+    max-width: 100% !important;
+    height: 200px !important;
+  }
+}

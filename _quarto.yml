@@ -1,8 +1,11 @@
 project:
   type: website
+  render:
+    - index.qmd
+    - proyectos.qmd
+    - Publicaciones.qmd
 
 title: "Portfolio de Valeria Aguirre"
-author: "Valeria Aguirre"
 
 website:
   navbar:
@@ -11,18 +14,20 @@ website:
         href: index.qmd
       - text: "Proyectos"
         href: proyectos.qmd
-        
+      - text: "Publicaciones"
+        href: Publicaciones.qmd
+
     right:
       - icon: github
         href: https://github.com/Valeria-Aguirre
       - icon: linkedin
         href: https://www.linkedin.com/in/valeria-mariana-aguirre/
+      - icon: envelope
+        href: mailto:valumaru@hotmail.com
 
 format:
   html:
-    theme: lumen          # minimalista y profesional
-    css: css-styles.css   # CSS personalizado
+    theme: readable
+    css: css-styles.css
     font-sans: "Helvetica, Arial, sans-serif"
     font-mono: "Fira Code"
-
-  

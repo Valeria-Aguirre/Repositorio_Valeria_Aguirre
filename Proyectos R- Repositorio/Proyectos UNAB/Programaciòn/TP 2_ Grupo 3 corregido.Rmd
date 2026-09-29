@@ -1,0 +1,238 @@
+---
+title: "Informe TP1_Grupo 3 correcciones"
+author: "Valeria Aguirre"
+output: html_document
+date: '2023-05-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Cargar los paquetes necesarios acá
+
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+## Introducción
+
+**Encuesta Uso del tiempo 2016**
+
+Los datos elegidos son los de la encuesta sobre el uso del tiempo correspondiente al año 2016.
+
+Es un relevamiento que realiza Dirección General de Estadística y Censos del Gobierno de la Ciudad de Buenos Aires. Tiene por objeto recoger información sobre el uso del tiempo que los habitantes de la Ciudad dedican a diferentes actividades incluyendo el trabajo remunerado, las actividades domésticas, el cuidado de niños, niñas, personas mayores o con discapacidad, el estudio, el esparcimiento, los viajes y traslados, etc.
+
+Para mayor información sobre la encuesta consultar el [documento metodógico](https://www.estadisticaciudad.gob.ar/eyc/wp-content/uploads/2017/10/UT_CABA_2017.pdf) o la [base usuaia](https://www.estadisticaciudad.gob.ar/eyc/?p=74110).
+
+## Exploración de los datos
+
+Carga de base
+
+```{r}
+encuesta_uso_tiempo_2016 <- read.csv("C:/Users/valum/Downloads/encuesta_uso_tiempo_2016.csv", header = TRUE)
+```
+
+Dimensiones
+
+```{r}
+dim(encuesta_uso_tiempo_2016)
+```
+
+Reconocimiento de variables
+
+```{r}
+names(encuesta_uso_tiempo_2016)
+
+```
+
+Tipo de variables
+
+```{r}
+summary(encuesta_uso_tiempo_2016) 
+```
+
+La base de datos de referencia consta de 27 variables y 2336 observaciones.
+
+Variables:
+
+-   hogar
+
+-   sexo
+
+-   edad
+
+-   dia_laborable
+
+-   trabajo_pago
+
+-   trabajo_domestico_no_pago
+
+-   voluntariados
+
+-   estudio_educacion
+
+-   recreacion
+
+-   aplicaciones
+
+-   tareas_cuidados
+
+-   cuidado_personal
+
+-   trabajo_pago2
+
+-   trabajo_domestico_no_pago2
+
+-   voluntariados2
+
+-   estudio_educacion2
+
+-   recreacion2
+
+-   aplicaciones2
+
+-   tareas_cuidados2
+
+-   cuidado_personal2
+
+-   dia_tipico
+
+-   rango_etario
+
+-   nivel_educativo
+
+-   relacion_parentesco_jefe
+
+-   tipo_hogar
+
+-   quintil_ingreso
+
+-   estado_ocupacional
+
+Del listado de variables vamos a considerar para anlizar las variables "sexo", "trabajo_domestico_no_pago" y "trabajo_pago".
+
+**Sexo**
+
+Total casos y % de varones y mujeres
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  group_by(sexo) %>% 
+  summarise(n = n ()) %>% 
+  mutate(porcentaje = n/sum(n)*100)
+```
+
+**Trabajo doméstico no pago según sexo**
+
+```{r}
+encuesta_uso_tiempo_2016%>%
+  group_by(sexo)%>%
+summarise(Promedio = mean(trabajo_domestico_no_pago),
+          DesvStandard = sd(trabajo_domestico_no_pago),
+          min(trabajo_domestico_no_pago),
+          max(trabajo_domestico_no_pago))
+
+```
+
+Las mujeres dedican mayor tiempo diario al trabajo domestico que los varones. La media de las mujeres es de 3,1hs, mientras que la media de los varones es de 1,8hs.
+
+En el caso de las mujeres los valores para la variable "trabajo doméstico no pago" van desde 0hs hasta 15,7hs. Mientras que el rango de los varones es de 0hs a 12hs.
+
+**Trabajo pago según sexo**
+
+```{r}
+encuesta_uso_tiempo_2016%>%
+  group_by(sexo)%>%
+summarise(Promedio=mean(trabajo_pago),
+          DesvStandard=sd(trabajo_pago),
+          min(trabajo_pago),
+          max(trabajo_pago))
+```
+
+Se observa que los varones dedican más tiempo diario al trabajo remunerado que las mujeres. Siendo la media de los varones 5,2hs y la de las mujeres 3,4hs diarias.
+
+En el caso del trabajo remunerado el rango en las mujeres es de 0hs hasta 18,5hs, y para los varones es de 0hs a 22.5hs.
+
+## Hipótesis
+
+Existe una relación desigual en la distribución del uso del tiempo entre varones y mujeres, la cual se puede observar al ver el tipo de trabajo (productivo=pago, no reproductivo=doméstico no pago). Siendo las mujeres quienes dedican mayor tiempo diario a las tareas domésticas, mientras que los varones dedican mayor tiempo al trabajo productivo.
+
+Esto puede verse justificado a partir de la división sexual del trabajo y los roles de géneros de las sociedades modernas.
+
+Pero ¿como se dan esas diferencias según grupos etarios? ¿que particularidades se pueden observar al tomar en consideración el trabajo del cuidado a miembros del hogar no pago? ¿Existe una sobrecarga de trabajo para las mujeres aún cuando también realizan tareas laborales remuneradas?
+
+Nuestra hipótesis sostiene que al contraponer el tiempo de "trabajo productivo" (trabajo pago) con el "trabajo reproductivo" (tiempo destinado a las tareas vinculadas al trabajo domestico y al cuidado de miembros del hogar), resultan ser las mujeres quienes dedican más horas de su día al trabajo que los varones. Implicando una sobrecarga de trabajo invisibilizada.
+
+## TP2
+
+## Visualizaciones:
+
+**Tabajo pago según sexo**
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  ggplot(aes(sexo, trabajo_pago)) +
+  geom_col(aes(fill=sexo)) +
+  labs(title = "Trabajo pago segun sexo",
+      caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al ano 2016. Direccion de Estadisticas y Censos, GCBA.")
+  
+```
+
+Al graficar la variable "trabajo pago" según sexo, se observa que es mayor la cantidad de horas que le dedican los varones que las mujeres.
+
+**Trabajo pago doméstico no pago según sexo**
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+ggplot(aes(sexo, trabajo_domestico_no_pago)) +
+  geom_col(aes(fill=sexo)) +
+  labs(title = "Trabajo doméstico no pago según sexo",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al año 2016. Dirección de Estadísticas y Censos, GCBA.")
+
+```
+
+La cantidad de horas que le dedican las mujeres a realizar tareas doméstica es significativamente mayor que el que le dedican los varones.
+
+**Trabajo reproductivo** Entendiendo que el "trabajo reproductivo" es aquel destinado a garantizar la satisfacción de las necesidades de los miembros del hogar, asumiendo la forma de tareas de cuidados y tareas domésticas que no son remuneradas, se contruyó la varibale denominada "trabajo_reproductivo" incluyendo "tareas_cuidados" y "trabajo_domestico_no_pago".
+
+```{r}
+encuesta_uso_tiempo_2016_b <- encuesta_uso_tiempo_2016 %>% 
+  mutate(trabajo_reproductivo = trabajo_domestico_no_pago + tareas_cuidados)
+```
+
+
+**Trabajo reproductivo según sexo**
+
+```{r}
+encuesta_uso_tiempo_2016_b %>%
+ggplot(aes(sexo, trabajo_reproductivo)) +
+  geom_col(aes(fill=sexo)) +
+  labs(title = "Trabajo reproductivo segun sexo",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.")
+
+```
+
+Al incluir las tareas del cuidado al trabajo no remunerado, se observa que es mayor la brecha entre varones y mujeres en cuanto a la distribución del tiempo del trabajo reproductivo.
+
+Trabajo reproductivo segun edad y sexo:
+
+```{r}
+
+encuesta_uso_tiempo_2016_b %>%
+ggplot(aes(edad, trabajo_reproductivo)) +
+  geom_col(aes(fill=sexo)) +
+  labs(title = "Trabajo reproductivo por edad segun sexo",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.")
+```
+
+Trabajo pago segun edad y sexo:
+
+```{r}
+encuesta_uso_tiempo_2016_b %>%
+ggplot(aes(edad, trabajo_pago)) +
+  geom_col(aes(fill=sexo)) +
+  labs(title = "Trabajo pago por edad segun sexo",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.")
+```

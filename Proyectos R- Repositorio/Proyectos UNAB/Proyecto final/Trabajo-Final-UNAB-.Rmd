@@ -1,0 +1,338 @@
+---
+title: "El Programa Punto Digital: asistencias y usos de los espacios de reducción de la brecha digital."
+
+subtitle: "Trabajo Final Integrador"
+
+author: Valeria Aguirre, Fernanda López Franz, Pilar Thill, Alejandro Blasco
+date: "17-02-2024"
+output:
+  html_document:
+    theme: flatly
+    highlight: pygments
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+      number_sections: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***UNaB***\
+*Diplomatura en Análisis de Datos para el Desarrollo de Políticas Públicas*\
+Universidad Nacional Guillermo Brown
+
+***Coordinador:*** Juan Domingo González
+
+# Objetivos Generales
+
+El objetivo general del presente trabajo consiste en analizar el uso que las y los asistentes dan a los espacio de inclusión digital, de acuerdo a los diferentes ejes que clasifican dichas actividades. Si bien el Programa inició con el objetivo principal de proveer acceso a equipamiento y conectividad, a lo largo de su implementación, las personas que participaron y participan de los Puntos Digitales redefinieron las posibilidades de aprendizaje y participación comunitario, evidenciando una verdadera apropación de los Puntos por parte del territorio. El análisis nos permitirá evaluar cuáles son las principales áreas en las que los PD fortalecen la presencia del Estado en territorio.
+
+# Objetivos Específicos
+
+En principio, nos interesa trabajar con los datos mensualizados correspondientes al período 2020-2023 para preguntarnos: ¿Podemos identificar los Ejes Temáticos más concurridos según región o provincia? ¿Existe una relación entre la concurrencia a los Puntos Digitales y su ubicación geográfica? A partir de estas preguntas, algunos objetivos específicos de este trabajo son los siguientes: Identificar cuáles son los Ejes Temáticos más concurridos por provincia y región. Corroborar si existe, o no, una relación causal entre ubicación geográfica y asistencia a los Puntos Digitales.
+
+# Antecedentes
+
+## Sobre el Programa Punto Digital
+
+El Programa Punto Digital cuenta con dispositivos instalados a lo largo y ancho del territorio argentino. Su objetivo general y principio fundante es la reducción de la brecha digital a fin de contribuir a mejorar la calidad de vida de las y los habitantes de la República Argentina. En tal sentido, ofrece acceso gratuito y en igualdad de condiciones a la conectividad y a las Tecnologías de la Información y la Comunicación (TIC). Apunta también a establecer las bases para el desarrollo de habilidades digitales que fortalezcan no sólo a las personas en términos individuales, sino también a sus comunidades.
+
+Entre los objetivos específicos de este Programa se encuentran los siguientes:
+
+-   Reconocer derechos fundamentales y promover un acceso efectivo a los mismos.
+-   Incentivar el desarrollo de habilidades digitales.
+-   Promover la participación comunitaria.
+-   Facilitar el desarrollo de iniciativas locales y del emprendedurismo.
+-   Estimular el desarrollo de oficios manuales y digitales.
+-   Aportar al reconocimiento de la cultura local.
+-   Promover el acceso y la producción de bienes culturales.
+-   Brindar un espacio para el entretenimiento educativo y tecnológico.
+-   Promover el acceso a la información y al conocimiento.
+
+# Actividades y metodología
+
+Uno de los principales insumos para realizar el monitoreo del uso de los Puntos Digitales (PD) por parte de las y los habitantes del territorio es el reporte de asistencias que realiza cada equipo de trabajo local de cada uno de los PD distribuidos a lo largo y a lo ancho del país. En esta línea, cada Punto Digital cuenta con una coordinadora o coordinador que mensualmente carga el listado de actividades (clasificadas por Eje Temático) y las asistencias a cada actividad.
+
+El set de datos se compone de planillas .csv mensualizadas de enero 2020 a septiembre 2023 (el reporte es a mes vencido) sobre el número de participantes según edad, en los Puntos Digitales en funcionamiento de las 24 jurisdicciones de Argentina (23 provincias más CABA).
+
+Las actividades están estructuradas en nueve (9) ejes, detallados a continuación:
+
+-   Alfabetización Digital
+-   Capacitaciones PPD
+-   Ciudadanía y Derechos
+-   Cultura y entretenimiento
+-   Educación
+-   Formación Laboral
+-   Géneros y diversidades
+-   Salud
+-   Trámites
+
+Para el año 2023, contamos con datos discriminados según género. Nos interesa trabajar con los datos mensualizados correspondientes al período 2020-2023 para preguntarnos sobre los Ejes más concurridos según región o provincia y evaluar si existe una relación entre la concurrencia de los Puntos Digitales y su ubicación geográfica. Para el procesamiento, análisis y visualización de los datos utilizamos R-Studio. El set de datos seleccionado para trabajar consta de la base mensualizada de los Puntos Digitales y como datos complementarios, se tomó la base georeferenciada de los mismos.
+
+## Fuentes de Datos
+
+El set de datos seleccionado para trabajar consta de la base mensualizada de Actividades de los Puntos Digitales. Como datos complementarios se tomará la base georeferenciada de los Puntos Digitales.
+
+**Carga de librerías**
+
+```{r }
+library(leaflet)
+library(mapview)
+library(gt)
+library(gtExtras)
+library(tidyverse)
+library(tidyr)
+library(sf)
+library(plyr)
+library(readr)
+```
+
+**Carga de datos**
+
+Bases csv mensualizadas.
+
+```{r }
+#Carga de bases mensuales 2023
+library(readr)
+base_2023_1 <- read_csv("C:/Users/valum/Downloads/2023-1.csv")
+base_2023_2 <- read_csv("C:/Users/valum/Downloads/2023-2.csv")
+base_2023_3<- read_csv("C:/Users/valum/Downloads/2023-3.csv")
+base_2023_4 <- read_csv("C:/Users/valum/Downloads/2023-4.csv")
+base_2023_5 <- read_csv("C:/Users/valum/Downloads/2023-5.csv")
+base_2023_6 <- read_csv("C:/Users/valum/Downloads/2023-6.csv")
+base_2023_7 <- read_csv("C:/Users/valum/Downloads/2023-7.csv")
+base_2023_8 <- read_csv("C:/Users/valum/Downloads/2023-8.csv")
+
+```
+
+Unificación de bases.
+
+```{r }
+#lista
+lista_datos_cons <- list(base_2023_1, base_2023_2, base_2023_3, base_2023_4, base_2023_5, base_2023_6, base_2023_7, base_2023_8)
+
+#Unir bases mensuales 2023 
+BASE_2023 <- rbind.fill(lista_datos_cons)
+```
+
+**Listado de Puntos Digitales**
+
+El Programa Punto Digital cuenta con dispositivos instalados a lo largo y ancho del territorio argentino. Su objetivo fundamental es la reducción de la brecha digital a los fines de contribuir a la mejora de la calidad de vida de las y los habitantes del país. Esta tabla contiene el listado de los puntos digitales.
+
+Base csv Puntos Digitales
+
+```{r }
+puntos_digitales <- read_csv("C:/Users/valum/OneDrive/Escritorio/tp final bases/puntos_digitales (1).csv")
+```
+
+# Visualizaciones
+
+## Tabla 1
+
+**Listado de Puntos Digitales**
+
+```{r }
+puntos_digitales %>%
+  sample_n(10) %>% 
+  select(id_pd, nombre_pd, provincia, departamento, localidad, direccion, estado, latitud, longitud) %>%
+  gt() %>%
+  tab_header(
+    title = "Puntos Digitales*",
+    subtitle = "* muestra") %>% 
+  gt_theme_espn() %>% 
+  opt_stylize(style = 5, color = "blue")
+  
+```
+
+## Mapa ubicación Puntos Digitales
+
+```{r}
+#Crear popup_
+   popup_pd  = paste0("<strong>", puntos_digitales$nombre_pd,   "</strong><br/><ul>", 
+                      "<li>ID:",  puntos_digitales$id_pd, "</li>",
+                      "<li>Estado:",  puntos_digitales$estado, "</li></ul>")
+
+```
+
+```{r}
+Mapa_PD <- leaflet(data = puntos_digitales) %>% #mapa base
+  addTiles() %>%
+  setView(lng =-66.3600, lat =-35.2825, zoom = 4) %>%   #centrar el mapa
+  addCircleMarkers(lng = ~longitud, 
+                   lat = ~latitud, 
+                   label = ~nombre_pd, 
+        #clusterOptions = markerClusterOptions(), #que se agrupen los casos
+                  color= "#009ADE",
+                  radius = 2, 9,
+                  stroke = FALSE,
+                  fillOpacity = 0.8,
+                  popup =  popup_pd) 
+
+
+Mapa_PD
+
+```
+
+## Tabla 2
+
+**Cantidad de registros por Ejes. Año 2023**
+
+```{r }
+#Cantidad de registros según EJE
+BASE_2023 %>%
+  select(provincia, eje) %>%
+  group_by(provincia, eje) %>%
+  count("eje") %>%
+  mutate(porcentaje = freq/sum(freq)*100) %>%
+arrange(desc(freq)) %>%
+  gt() %>%
+  tab_header(
+    title = "Cantidad de registros por Ejes") %>%
+  cols_label(eje= "Eje",
+             freq= "Frecuencia") %>%
+  gt_theme_espn() %>% 
+  opt_stylize(style = 5, color = "blue") %>%
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%")
+```
+
+```{r }
+tabal_frec_eje <- BASE_2023 %>%
+  select(provincia, eje) %>%
+  count() %>%
+  group_by(provincia) %>%
+  mutate(porcentaje = freq/sum(freq)*100)%>%
+arrange(desc(freq)) 
+
+tabal_frec_eje
+
+```
+
+## Tabla 3
+
+Cantidad de registros por Provincias y Ejes. Año 2023
+
+```{r }
+TABLA_frec_eje <- tabal_frec_eje %>%
+  gt() %>%
+  tab_header(
+    title = "Cantidad de registros por Provincias y Ejes") %>%
+  cols_label(provincia= "Provincia", 
+             eje= "Eje",
+             freq= "Frecuencia",
+             porcentaje= "Porcentaje") %>%
+  gt_theme_espn()   %>% 
+  opt_stylize(style = 5, color = "blue") %>%
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%")
+
+TABLA_frec_eje
+```
+
+```{r }
+#Carga de base datos por provinvia y ejes
+library(readxl)
+datos_provincia_ejes <- read_excel("C:/Users/valum/OneDrive/Escritorio/tp final bases/datos_provincia_ejes - copia.xlsx")
+
+```
+
+## Mapa de indicadores
+
+Ejes por provincias
+
+```{r }
+datos_provincia_ejes%>% 
+  mutate_if(is.numeric, round, digits = 3)
+```
+
+```{r}
+#Carga json capa provincial
+
+provincias.json <- read_sf("C:/Users/valum/OneDrive/Escritorio/proyecto r- mincyt/provincia.json")
+
+```
+
+```{r}
+#Unir bases (json prov- base ejes)
+provincia.json2 <- provincias.json %>%
+  inner_join(datos_provincia_ejes, by= c("nam" = "provincia"))
+
+```
+
+```{r}
+#Definiciones de paleta de color_ EJE
+
+# pal_eje <- colorBin(palette = "Blues",
+#                   domain  = provincia.json2$`Alfabetizacion Digital`,
+#                   bins    = 3)
+```
+
+```{r}
+#Crear popup
+ popup_eje= paste0("<strong>",   provincia.json2$nam,   "</strong><br/><ul>",
+                  "<li>Alfabetizacion digital:", provincia.json2$`Alfabetizacion Digital`, "%</li>",
+                  "<li>Capacitaciones:", provincia.json2$`Capacitaciones PPD`, "%</li>",
+                  "<li>Ciudadania:", provincia.json2$`Ciudadania y DD`, "%</li>",
+                  "<li>Cultura y entretenimiento:", provincia.json2$`Cultura y Entretenimiento`, "%</li>",
+                  "<li>Educacion:", provincia.json2$Educacion, "%</li>",
+                  "<li>Formacion laboral:", provincia.json2$`Formacion Laboral`, "%</li>",
+                  "<li>Generos y diversidades:", provincia.json2$`Generos y Diversidades`, "%</li>",
+                  "<li>Salud:", provincia.json2$Salud , "%</li>",
+                  "<li>Tramites:", provincia.json2$Tramites, "%</li>")
+
+```
+
+```{r}
+
+#Mapa con indicadores por EJES 
+
+Mapa_ejes <- leaflet(data = provincia.json2) %>%
+  setView(lng =-66.3600, lat =-35.2825, zoom = 4) %>%
+  addPolygons(color       = "#009ADE",
+              popup       = ~popup_eje,
+              label       = ~nam,
+              stroke      = FALSE,
+              fillOpacity = 1,
+              group       = "EJES") %>%
+  
+# # Leyenda 
+#  addLegend(position = "bottomright",
+#             title    = "Ejes Puntos Digitales",
+#             pal = "#009ADE",
+#             values = ~Tramites,
+#             group = "EJES")%>%
+  
+#Capas
+addLayersControl(baseGroups = c("EJES") ,
+    options = layersControlOptions(collapsed = FALSE))
+                   
+                   
+Mapa_ejes
+
+```
+
+## Gráficos Edad-Sexo
+
+```{r}
+ #histograma sexo y edad
+# BASE_2023 |>
+#   select(hasta_11_femenino) %>%
+#   count() %>%
+#  mutate(porcentaje = freq/sum(freq)*100) %>%
+# arrange(desc(porcentaje)) 
+
+
+   #mutate(Porcentaje = (Total / sum(Total)) * 100)
+```
+
+# Conclusiones
+
+Como mencionamos al iniciar el trabajo, en 2010, cuando los Núcleos de Acceso al Conocimiento fueron creados, el principal objetivo fue el de reducir las inequidades de acceso a las TIC en un contexto global de creciente incorporación de las tecnologías en diversas áreas de la vida social, económica y cultural. La permanencia del Programa y el relevamiento constante de las actividades en los Puntos Digitales, permitió observar una adecuación del uso de cada dispositivo, a las necesidades y demandas del territorio. En este sentido, el análisis a partir de las herramientas adquiridas en la diplomatura, nos permitió obtener información basada en datos para corroborar una lectura que hasta ahora, era fundamentalmente cualitativa.
+
+El análisis de los usos de los Puntos Digitales en el año 2023 arroja --a nivel nacional- que las actividades más recurridas por la ciudadanía son aquellas nucleadas en el eje temático Trámites. No obstante, cuando se observan los parciales por jurisdicción se puede observar, por ejemplo, que en la mayor parte de las provincias patagónicas tienen como eje principal aquel que nuclea actividades vinculadas a Cultura y Entretenimiento. Si bien el acceso a la Cultura se encuentra mencionado en la documentación que da inicio a la política pública que analizamos, el Eje trámites resulta de la apropiación que las y los participantes de los Puntos Digitales, realizaron sobre dichos espacios, a partir del uso del equipamiento y la conectividad para resolver necesidades atinentes a su vida cotidiana.
+
+Por otra parte, entendemos que el uso de los espacios para el acceso al derecho a la cultura y el entretenimiento, se relaciona con la asistencias de proyecciones audiovisuales en localidades en las que el cine del microcine es muchas veces, el único cine del lugar.
+
+Para finalizar, y atendiendo a la importancia que tienen la apropiación de tecnología más allá del acceso y el uso, en tanto herramienta que viabiliza una inclusión digital que repercuta en inclusiones económicas, sociales, culturales y políticas, los datos analizados destacan la importancia de un monitoreo y evaluación permanente de los Programas que permitan una readecuación dinámica a partir de la lectura del impacto de las políticas públicas en los destinatarios y destinatarias finales.

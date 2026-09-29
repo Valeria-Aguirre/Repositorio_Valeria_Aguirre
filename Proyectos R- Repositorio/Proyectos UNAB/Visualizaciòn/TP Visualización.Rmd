@@ -1,0 +1,617 @@
+---
+title: "TP3- Grupo 3" 
+author: "Valeria Aguirre" 
+output: 
+ html_document: 
+   code_folding: hide 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(gt)
+library(gtExtras)
+
+```
+
+## Introducción
+
+### Encuesta Uso del tiempo 2016 
+
+Los datos elegidos son los de la encuesta sobre el uso del tiempo correspondiente al año 2016.
+
+Es un relevamiento que realiza Dirección General de Estadística y Censos del Gobierno de la Ciudad de Buenos Aires. Tiene por objeto recoger información sobre el uso del tiempo que los habitantes de la Ciudad dedican a diferentes actividades incluyendo el trabajo remunerado, las actividades domésticas, el cuidado de niños, niñas, personas mayores o con discapacidad, el estudio, el esparcimiento, los viajes y traslados, etc. Se realizo a 4500 hogares a personas de la Ciudad Autónoma de Buenos Aires de 14 años y más.
+
+Para mayor información sobre la encuesta consultar el [documento metodógico](https://www.estadisticaciudad.gob.ar/eyc/wp-content/uploads/2017/10/UT_CABA_2017.pdf) o la [base usuaia](https://www.estadisticaciudad.gob.ar/eyc/?p=74110).
+
+## Exploración de los datos
+
+Carga de base
+
+```{r}
+encuesta_uso_tiempo_2016 <- read.csv("https://cdn.buenosaires.gob.ar/datosabiertos/datasets/direccion-general-de-estadisticas-y-censos/uso-tiempo/encuesta_uso_tiempo_2016.csv")
+```
+
+Dimensiones
+
+```{r}
+dim(encuesta_uso_tiempo_2016)
+```
+
+Reconocimiento de variables
+
+```{r}
+names(encuesta_uso_tiempo_2016)
+
+```
+
+Tipo de variables
+
+```{r}
+summary(encuesta_uso_tiempo_2016) 
+```
+
+La base de datos de referencia consta de 27 variables y 2336 observaciones. La encuesta da cuenta del uso del tiempo con y sin simultaneidad. Por tal motivo, 8 variables de la base tienen el mismo nombre. En este caso, del listado de variables vamos a considerar para analizar son las variables "sexo", "rango etario", "trabajo_domestico_no_pago2", "tareas_cuidado2" y "trabajo_pago2". Estas últimas dan cuenta del tiempo sin simultaneidad.
+
+## Tablas estadísticas
+
+
+```{r}
+encuesta_uso_tiempo_2016 %>% 
+group_by(sexo) %>% 
+  summarise(n=n()) %>% 
+  mutate(porcentaje = n/sum(n)*100) %>% 
+  gt() %>% 
+  tab_header(title="Población total según sexo") %>% 
+  cols_label(sexo= "Sexo", 
+             n= "Total casos",
+             porcentaje= "Porcentaje") %>%
+  gt_theme_espn() %>%
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%", last_row_n = 2)
+```
+
+
+
+```{r}
+encuesta_uso_tiempo_2016 %>% 
+select(sexo, trabajo_pago2) %>% 
+  group_by(sexo) %>% 
+  filter(trabajo_pago2 > 0) %>% 
+  summarise(Promedio = mean(trabajo_pago2),
+            DesvStandard = sd(trabajo_pago2),
+            Valor_minimo = min(trabajo_pago2),
+            Valor_maximo = max(trabajo_pago2),
+            n = n ()) %>%  
+  mutate(porcentaje = n/sum(n)*100) %>% 
+ gt() %>% 
+  tab_header(title="Trabajo pago según sexo") %>% 
+  cols_label(sexo= "Sexo",
+            Promedio = "Promedio",
+            DesvStandard = "Desvío estandar",
+            Valor_minimo = "Valor mínimo",
+            Valor_maximo = "Valor máxiomo",
+            n = "Total casos") %>%
+  gt_theme_espn() %>%
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%", last_row_n = 2) %>%
+  fmt_symbol_first(column = Promedio, decimals = 1) %>%
+  fmt_symbol_first(column = DesvStandard , decimals = 1) 
+
+  #Se excluyeron los valores "0"
+```
+
+Del total de casos de la base (2336), solo 1174 informó haber trabajado de manera remunerada, del cual el 49,7% son mujeres y el 50,3 varones.
+
+Observando el promedio de horas trabajadas por sexo, vemos que los varones dedican más tiempo diario al trabajo remunerado que las mujeres. Siendo la media de los varones 8,7hs y la de las mujeres 7,8hs diarias.
+
+En el caso del trabajo remunerado el rango en las mujeres es de 0,5hs hasta 18,5hs, y para los varones es de 0,2hs a 22.5hs.
+
+Tanto en mujeres como en varones el desvío estandar es alto, alcanzando las 3hs.
+
+
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  select(sexo, trabajo_domestico_no_pago2) %>% 
+  group_by(sexo) %>% 
+  filter(trabajo_domestico_no_pago2 > 0) %>%
+  summarise(Promedio = mean(trabajo_domestico_no_pago2),
+            DesvStandard = sd(trabajo_domestico_no_pago2),
+            Valor_minimo = min(trabajo_domestico_no_pago2),
+            Valor_maximo = max(trabajo_domestico_no_pago2),
+            n = n ()) %>% 
+  mutate(porcentaje = n/sum(n)*100) %>% 
+  gt() %>% 
+   gt_theme_espn() %>%
+  cols_label(sexo= "Sexo",
+            Promedio = "Promedio",
+            DesvStandard = "Desvío estandar",
+            Valor_minimo = "Valor mínimo",
+            Valor_maximo = "Valor máxiomo",
+            n = "Total casos") %>%
+  tab_header(title= "Trabajo doméstico según sexo") %>%
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%") %>%
+  fmt_symbol_first(column = Promedio, decimals = 1) %>%
+  fmt_symbol_first(column = DesvStandard , decimals = 1) 
+
+#Se excluyeron los valores "0"
+```
+
+
+
+Del total de casos de la base, 2078 personas informaron dedicar tiempo diaria al trabajo doméstico, siendo el 59,5% mujeres y el 40,5 varones.
+
+Según se observa en la tabla,las mujeres dedican en promedio mayor tiempo diario al trabajo domestico que los varones. La media de las mujeres es de 2,9hs, mientras que la media de los varones es de 1,9hs.
+
+En el caso de las mujeres los valores para la variable "trabajo doméstico no pago" van desde 0,1hs hasta 12,8hs. Mientras que el rango de los varones es de 0,1hs a 11,8hs.
+
+El desvío estandar para las mujeres es de 2,3 hs y el de los varones de 1,7hs.
+
+
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  select(sexo, tareas_cuidados2) %>% 
+  group_by(sexo) %>% 
+  filter(tareas_cuidados2 > 0) %>%
+  summarise(Promedio = mean(tareas_cuidados2),
+            DesvStandard = sd(tareas_cuidados2),
+            Valor_minimo = min(tareas_cuidados2),
+            Valor_maximo = max(tareas_cuidados2),
+            n = n ()) %>% 
+  mutate(porcentaje = n/sum(n)*100) %>% 
+  gt() %>% 
+   gt_theme_espn() %>%
+  cols_label(sexo= "Sexo",
+            Promedio = "Promedio",
+            DesvStandard = "Desvío estandar",
+            Valor_minimo = "Valor mínimo",
+            Valor_maximo = "Valor máxiomo",
+            n = "Total casos") %>%
+  tab_header(title= "Tareas del cuidado según sexo") %>%
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%") %>%
+  fmt_symbol_first(column = Promedio, decimals = 1) %>%
+  fmt_symbol_first(column = DesvStandard , decimals = 1) 
+
+#Se excluyeron los valores "0"
+```
+
+Respecto de las tareas del cuidado, se observa que solo 535 personas informaron realizar estas actividades, de las cuales el 65,6% fueron mujeres y el 34,4% varones.
+
+Las mujeres le dedican más tiempo diario a estas tareas en comparación con los varones (3,9hs vs 2,6hs). En ambos casos el desvío standar es alto, 2,7 hs para las mujeres y 2hs los varones.
+
+## Hipótesis
+
+Existe una relación desigual en la distribución del uso del tiempo entre varones y mujeres, la cual se puede observar al ver el tipo de trabajo (Trabajo pago y trabajo doméstico no pago). Siendo las mujeres quienes dedican mayor tiempo diario a las tareas domésticas, mientras que los varones dedican mayor tiempo al trabajo productivo. Esto puede verse justificado a partir de la división sexual del trabajo y los roles de géneros de las sociedades modernas.
+
+Pero ¿como se dan esas diferencias según grupos etarios? ¿que particularidades se pueden observar al tomar en consideración el trabajo no pago del cuidado a miembros del hogar? ¿Existe una sobrecarga de trabajo para las mujeres aún cuando también realizan tareas laborales remuneradas?
+
+Nuestra hipótesis sostiene que al contraponer el tiempo de "trabajo productivo" (trabajo pago) con el "trabajo reproductivo/no remunerado" (trabajo domestico y del cuidado de miembros del hogar), resultan ser las mujeres quienes dedican más horas de su día al trabajo que los varones. Implicando una sobrecarga de trabajo invisibilizada.
+
+## Visualizaciones
+
+```{r}
+#Tablas frecuencias filtradas (NA) segun tipo de trabajo (para unificar)
+
+frecuencia_trab_pago <- encuesta_uso_tiempo_2016 %>% 
+  select(hogar, sexo, trabajo_pago2) %>% 
+  filter(trabajo_pago2 > 0) 
+
+frecuencia_trab_domestico <- encuesta_uso_tiempo_2016 %>% 
+  select(hogar, sexo, trabajo_domestico_no_pago2) %>% 
+  filter(trabajo_domestico_no_pago2 > 0) 
+
+frecuencia_tareas_cuidados <- encuesta_uso_tiempo_2016 %>% 
+  select(hogar, sexo, tareas_cuidados2) %>% 
+  filter(tareas_cuidados2 > 0) 
+
+#Unificar tablas (FULL_JOIN)
+
+trabajo_mix <- full_join(frecuencia_trab_pago, frecuencia_trab_domestico)
+
+trabajo_mix_ <- full_join(trabajo_mix, frecuencia_tareas_cuidados) 
+
+```
+
+#### **Promedios**
+
+
+```{r}
+
+#Definición de etiquetas de ejes x - y
+etiquetas_x <- c("Trabajo_pago", "Tareas_cuidados", "Trabajo_domestico")
+etiquetas_y <- function(x) {paste(x, "hs")}
+```
+
+
+
+```{r}
+#Tabla trabajo hs promedio
+Tabla_hs_promedio <- trabajo_mix_ %>%
+  group_by(sexo) %>% 
+  summarise(Trabajo_pago = mean(trabajo_pago2, na.rm = TRUE),
+            Trabajo_domestico = mean(trabajo_domestico_no_pago2, na.rm = TRUE),
+            Tareas_cuidados = mean(tareas_cuidados2, na.rm = TRUE)) %>%
+  pivot_longer(cols = Trabajo_pago:Tareas_cuidados,
+               names_to="Trabajo_total",
+               values_to="Horas") 
+
+#Gráfico de barras
+ggplot(data = Tabla_hs_promedio,
+         aes(Trabajo_total, Horas, fill= sexo, colours(red))) +
+  geom_col(position="dodge", alpha=0.8)  +
+    scale_fill_manual("sexo", values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B")) +
+  labs(title = "Tipo de trabajo segun sexo (hs promedio)",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+       y= "Horas promedio",
+       x= "Tipo de trabajo") +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2")) +
+  scale_y_continuous(label= etiquetas_y,
+                     expand = c(0,0.05),
+                     limits = c(0, 10),
+                     breaks = seq(0, 24, by=1)) +
+  scale_x_discrete(label= etiquetas_x,
+                   limits = c("Trabajo_pago", "Tareas_cuidados", "Trabajo_domestico"))
+
+#Se excluyeron los valores "0" (NA)
+```
+
+
+Al diferenciar el trabajo pago del trabajo no remunerado, se observa que es mayor la cantidad de horas diarias promedio que le dedican los varones al trabajo pago que el que le dedican las mujeres.
+
+Por otra parte, al considerar las tareas del cuidado y el trabajo doméstico, se observa que la brecha entre varones y mujeres en cuanto a la distribución del tiempo se invierte, siendo las mujeres quienes más tiempo diario le dedican a estas tareas.
+
+#### **Frecuencias**
+
+```{r}
+#Definición de etiquetas de ejes x - y
+etiquetas_x <- c("Tareas de cuidado", "Trabajo doméstico", "Trabajo pago")
+etiquetas_y <- function(x) {paste(x, "hs")}
+```
+
+```{r}
+#histograma trabajo pago segun sexo
+encuesta_uso_tiempo_2016 %>%
+  filter(trabajo_pago2 > 0) %>% 
+  ggplot(aes(trabajo_pago2, fill=sexo, color=sexo)) +
+  geom_histogram(alpha=0.6, 
+                 position = 'identity',
+                 bins = 30) +
+  scale_fill_manual("sexo", values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B")) +
+  labs(title = "Trabajo pago segun sexo (frecuencias absolutas)",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+       y= "Frecuencias",
+       x= "") +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2")) +
+  scale_y_continuous(expand = c(0,0.1),
+                     limits = c(0, 95),
+                     breaks = seq(10, 85, by=10)) +
+ scale_x_continuous(label= etiquetas_y,
+                    expand = c(0, 0.3),
+                   breaks = seq(0,24, by=2))
+```
+
+Según se observa en el gráfico, el tiempo destinado al trabajo pago con mayor frecuencia es entre 7-12hs diarias. Al ver las frecuencias según sexo, se nota una mayor dedicación de horas por los varones y una menor dedicación de las mujeres.
+
+
+```{r}
+#histograma trabajo domestico no pago segun sexo
+encuesta_uso_tiempo_2016 %>%
+  filter(trabajo_domestico_no_pago2 > 0) %>% 
+  ggplot(aes(trabajo_domestico_no_pago2, fill=sexo, color=sexo)) +
+  geom_histogram(alpha=0.6, 
+                 position = 'identity',
+                 bins = 30) +
+  scale_fill_manual("sexo", values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B")) +
+  labs(title = "Trabajo domestico según sexo (frecuencias absolutas)",
+  caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+       y= "Frecuencias",
+       x= "") +
+    theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2")) +
+  scale_y_continuous(expand = c(0,0.3),
+                     limits = c(0, 170),
+                     breaks = seq(10, 160, by=10)) +
+  scale_x_continuous(label= etiquetas_y,
+                     expand = c(0,0.1),
+                      breaks = seq(0,24, by=1))
+```
+
+Respecto del trabajo domestico no pago, es mayor la dedicación horaria de las mujeres, sinendo los varones quienes menos horas le dedican a estas tareas.
+
+
+```{r}
+#histograma tareas del cuidado segun sexo
+encuesta_uso_tiempo_2016 %>%
+  filter(tareas_cuidados2 > 0) %>% 
+  ggplot(aes(tareas_cuidados2, fill=sexo, color=sexo)) +
+  geom_histogram(alpha=0.6, 
+                 position = 'identity',
+                 bins = 30) +
+  scale_fill_manual("sexo", values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B")) +
+  labs(title = "Tareas del cuidado según sexo (frecuencias absolutas)",
+  caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+       y= "Frecuencias",
+       x= "") +
+    theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2")) +
+ scale_y_continuous(expand = c(0,0.1),
+                    limits = c(0, 40),
+                     breaks = seq(5, 35, by=5)) +
+  scale_x_continuous(label= etiquetas_y,
+                     expand = c(0,0.1),
+                      breaks = seq(0,24, by=1))
+    
+```
+
+En el caso de las tareas del cuidado, se observan que es baja la frecuencia general. Y al igual que con el trabajo doméstico, los varones dedican menos tiempo diario a realizar tareas del cuidado.
+
+
+```{r}
+#histograma frecuencia trabajo pago según rango etario y sexo
+encuesta_uso_tiempo_2016 %>%
+  filter(trabajo_pago2 > 0) %>% 
+  ggplot(aes(trabajo_pago2, fill=sexo, color=sexo)) +
+  geom_histogram(alpha=0.6, 
+                 position = 'identity',
+                 bins = 30)+
+  scale_fill_manual("sexo", values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B")) +
+  facet_wrap(~rango_etario) +
+  labs(title = "Trabajo pago segun rango etario y sexo (frecuencias absolutas)",
+  caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+  y= "Frecuencias",
+  x="") +
+   theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2")) +
+ scale_y_continuous(expand = c(0,0.3),
+                    limits = c(0, 45),
+                     breaks = seq(10, 45, by=10)) +
+  scale_x_continuous(label= etiquetas_y,
+                     expand = c(0,0.1),
+                      breaks = seq(0,24, by=4))
+```
+
+Según se observa en el gráfico histograma de frecuencias del trabajo pago según grupo etario, el periodo de mayor dedicación de tiempo se observa entre los 25 y 64 años de edad. Siendo el rango 14-24 y 65+ los de menor frecuencia. Para el rango de 25-39 años no se observan diferencias significativas de didicación por sexo. En cambio, para el rango de edad de 40-64 años se distingue una menor dedicación de tiempo de las mujeres al trabajo pago.
+
+
+
+```{r}
+#histograma frecuencia trabajo domestico no pago segùn rango etario y sexo
+encuesta_uso_tiempo_2016 %>%
+  filter(trabajo_domestico_no_pago2 > 0) %>%
+  ggplot(aes(trabajo_domestico_no_pago2, fill=sexo, color=sexo)) +
+  geom_histogram(alpha=0.6, 
+                 position = 'identity',
+                 bins = 30) +
+  scale_fill_manual("sexo", values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B")) +
+  facet_wrap(~rango_etario) +
+  labs(title = "Trabajo domestico no pago segun rango etario y sexo (frecuencias absolutas)",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+  y= "Frecuencias",
+  x="") +
+   theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2")) +
+  scale_y_continuous(expand = c(0,0.3),
+                    limits = c(0, 55),
+                     breaks = seq(10, 55, by=10)) +
+  scale_x_continuous(label= etiquetas_y,
+                     expand = c(0,0.1),
+                    breaks = seq(0,24, by=4))
+
+```
+
+Respecto al trabajo domestico, en todos los rangos etarios se observa una menor dedicación horaria por parte de los varones en comparación a la dedicación de las mujeres, siendo más acentuada en el periodo de 25-39 años. Por su parte, en el caso de las mujeres, la mayor dedicación al trabajo doméstico se acentúa más a partir de los 50 años.
+
+
+
+```{r}
+#histograma frecuencia tareas de cuidados según rango etario y sexo
+encuesta_uso_tiempo_2016 %>%
+  filter(tareas_cuidados2 > 0) %>%
+  ggplot(aes(tareas_cuidados2, fill=sexo, color=sexo)) +
+  geom_histogram(alpha=0.6, 
+                 position = 'identity',
+                 bins = 30,
+                 ylab= "Frecuencia") +
+  scale_fill_manual("sexo", values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B")) +
+  facet_wrap(~rango_etario) +
+  labs(title = "Tareas de cuidados segun rango etario y sexo (frecuencias absolutas)",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+  y= "Frecuencias",
+  x="") +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2")) +
+ scale_y_continuous(expand = c(0,0.3),
+                    limits = c(0, 25),
+                     breaks = seq(5, 25, by=5)) +
+  scale_x_continuous(label= etiquetas_y,
+                     expand = c(0,0.1),
+                     breaks = seq(0,24, by=4))
+```
+
+En relación a las tareas del cuidado por grupos etarios, observamos que son bajas las frecuencias de casos que no le dedican tiempo a las mismas. Las años donde se observa mayor dedicación de tiempo a las tareas de cuidados van desde los 25 a los 49, siendo mayor el tiempo dedicado por las mujeres y significativamente menor por los varones.
+
+## Conclusiones
+
+Nuestra hipotesis original planteaba que existía una relación desigual en la distribución del uso del tiempo entre varones y mujeres, donde al tomar en cuenta el tipo de trabajo (pago/no pago), era mayor el tiempo diario de trabajo de las mujeres en comparación a los varones.
+
+A partir del análisis de los datos, vimos que el uso del tiempo se distribuye de manera diferente según sexo y rango etarios. Siendo el tiempo promedio dedicado al trabajo pago mayor para los varones que para las mujeres, y en el caso del trabajo no remunerado del hogar (tareas domesticas y del cuidado) es mayor el tiempo promedio de las mujeres que los varones.
+
+Al tomar en consideración la edad, pudimos ver que no se distribuye de manera homogenea el uso del tiempo según sexo en cada tipo de trabajo, sino que asumen particularidades.
+
+Si bien en una primera instancia, tomando como referencia el tiempo diario promedio de horas dedicado al trabajo según sexo, se podría pensar que de manera agregada la brecha entre mujeres y varones se equipararía (7.18 hs vs 7.32hs), lo sierto es que no se puede hacer esa inferencia ya que los totales sobre los que se calculó el promedio de horas trabajadas no son los mismos.
+
+De manera que emerge del análisis la necesidad de tomar en cuenta la simultaneidad de tareas de trabajo, para poder medir, más alla de la cantidad de horas de trabajo, la "intensidad".
+
+## Relación entre variables
+
+#### **Trabajo pago y trabajo doméstico**
+ 
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  select(sexo, trabajo_domestico_no_pago2, trabajo_pago2) %>% 
+  group_by(sexo) %>% 
+  filter(trabajo_pago2 > 0, trabajo_domestico_no_pago2 > 0) %>%
+  summarise(n=n ()) %>% 
+  mutate(porcentaje = n/sum(n)*100,
+         porcentaje_muestra = n/2336*100) %>% 
+  gt() %>% 
+  gt_theme_espn() %>%
+  cols_label(sexo= "Sexo",
+             n="Total casos",
+             porcentaje= "Porcentaje",
+             porcentaje_muestra= "Porcentaje sobre el total muestral") %>% 
+  tab_header(title= "Total casos que realizan trabajo pago y trabajo doméstico") %>% 
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%") %>% 
+  fmt_symbol_first(column = porcentaje_muestra, decimals = 1, suffix = "%")
+```
+ 
+
+```{r}
+ ggplot(trabajo_mix_, aes(trabajo_pago2, trabajo_domestico_no_pago2, fill=sexo, color=sexo)) +
+  geom_point(alpha=0.7) +
+  scale_color_manual(values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B"))+
+   theme_minimal()+
+   theme(panel.background = element_rect(fill = "#F2F2F2")) +
+  labs(title = "Tiempo dedicado al trabajo pago y al trabajo doméstico según sexo",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+       x= "Trabajo pago",
+       y= "Trabajo doméstico") +
+   scale_y_continuous(labels = etiquetas_y,
+                    expand = c(0,0.03),
+                    limits = c(0, 10.5),
+                     breaks = seq(0, 10, by=1)) +
+  scale_x_continuous(label= etiquetas_y,
+                     limits= c(0,19.5),
+                     expand = c(0,0.1),
+                     breaks = seq(0,19, by=1)) 
+  
+```
+
+#### **Trabajo pago y tareas del cuidado**
+
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  select(sexo, tareas_cuidados2, trabajo_pago2) %>% 
+  group_by(sexo) %>% 
+  filter(trabajo_pago2 > 0, tareas_cuidados2 > 0) %>%
+  summarise(n=n ()) %>% 
+  mutate(porcentaje = n/sum(n)*100,
+         porcentaje_muestra = n/2336*100) %>% 
+  gt() %>% 
+  gt_theme_espn() %>%
+  cols_label(sexo= "Sexo",
+             n="Total casos",
+             porcentaje= "Poorcentaje",
+             porcentaje_muestra= "Porcentaje sobre el total muestral") %>% 
+  tab_header(title= "Total casos que realizan trabajo pago y tareas del cuidado") %>% 
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%") %>%
+fmt_symbol_first(column = porcentaje_muestra, decimals = 1, suffix = "%")
+```
+
+
+
+```{r}
+ ggplot(trabajo_mix_, aes(trabajo_pago2, tareas_cuidados2, fill=sexo, color=sexo)) +
+  geom_point(alpha=0.7) +
+  scale_color_manual(values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B"))+
+   theme_minimal()+
+   theme(panel.background = element_rect(fill = "#F2F2F2")) +
+  labs(title = "Tiempo dedicado al trabajo pago y a las tareas del cuidado según sexo",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+       x= "Trabajo pago",
+       y= "Tareas del cuidado") +
+   scale_y_continuous(labels = etiquetas_y,
+                    expand = c(0,0.03),
+                    limits = c(0, 10.5),
+                     breaks = seq(0, 10, by=1)) +
+  scale_x_continuous(label= etiquetas_y,
+                     limits= c(0,17),
+                     expand = c(0,0.1),
+                     breaks = seq(0,16, by=1)) 
+  
+```
+
+
+#### **Trabajo doméstico y tareas del cuidado**
+
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  select(sexo, tareas_cuidados2, trabajo_domestico_no_pago2) %>% 
+  group_by(sexo) %>% 
+  filter(trabajo_domestico_no_pago2 > 0, tareas_cuidados2 > 0) %>%
+  summarise(n=n ()) %>% 
+  mutate(porcentaje = n/sum(n)*100,
+         porcentaje_muestra = n/2336*100) %>% 
+  gt() %>% 
+  gt_theme_espn() %>%
+  cols_label(sexo= "Sexo",
+             n="Total casos",
+             porcentaje= "Poorcentaje",
+             porcentaje_muestra= "Porcentaje sobre el total muestral") %>% 
+  tab_header(title= "Total casos que realizan trabajo doméstico y tareas del cuidado") %>% 
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%") %>%
+fmt_symbol_first(column = porcentaje_muestra, decimals = 1, suffix = "%")
+```
+
+
+```{r}
+ ggplot(trabajo_mix_, aes(trabajo_domestico_no_pago2, tareas_cuidados2, fill=sexo, color=sexo)) +
+  geom_point(alpha=0.7) +
+  scale_color_manual(values = c("Mujer" = "#FF8C69", "Varon" = "#9BCD9B"))+
+   theme_minimal()+
+   theme(panel.background = element_rect(fill = "#F2F2F2")) +
+  labs(title = "Tiempo dedicado al trabajo doméstico y a las tareas del cuidado según sexo",
+       caption = "Fuente: Encuesta sobre el uso del tiempo correspondiente al 2016. Direccion de Estadisticas y Censos, GCBA.",
+       x= "Trabajo doméstico",
+       y= "Tareas del cuidado") +
+   scale_y_continuous(labels = etiquetas_y,
+                    expand = c(0,0.03),
+                    limits = c(0, 10.5),
+                     breaks = seq(0, 10, by=1)) +
+  scale_x_continuous(label= etiquetas_y,
+                     limits= c(0,12),
+                     expand = c(0,0.1),
+                     breaks = seq(0,12.5, by=1)) 
+  
+```
+
+
+
+#### **Trabajo pago, trbajo doméstico y tareas del cuidado**
+
+
+```{r}
+encuesta_uso_tiempo_2016 %>%
+  select(sexo, trabajo_pago2, tareas_cuidados2, trabajo_domestico_no_pago2) %>% 
+  group_by(sexo) %>% 
+  filter(trabajo_domestico_no_pago2 > 0, tareas_cuidados2 > 0, trabajo_pago2 > 0) %>%
+  summarise(n=n ()) %>% 
+  mutate(porcentaje = n/sum(n)*100,
+         porcentaje_muestra = n/2336*100) %>% 
+  gt() %>% 
+  gt_theme_espn() %>%
+  cols_label(sexo= "Sexo",
+             n="Total casos",
+             porcentaje= "Poorcentaje",
+             porcentaje_muestra= "Porcentaje sobre el total muestral") %>% 
+  tab_header(title= "Total casos que realizan trabajo pago, trabajo doméstico y tareas del cuidado") %>% 
+  fmt_symbol_first(column = porcentaje, decimals = 1, suffix = "%") %>%
+fmt_symbol_first(column = porcentaje_muestra, decimals = 1, suffix = "%")
+```
+
+
+
+
+
+
+

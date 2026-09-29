@@ -1,0 +1,1056 @@
+---
+title: "Relevamiento Personas con Prisión Domiciliaria 2019-2022: situación de las mujeres"
+author: "Valeria AGUIRRE y Pilar THILL"
+date: "2023-12-18"
+output: 
+ html_document: 
+   
+   code_folding: hide 
+   theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+
+
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tidyr)
+library (knitr)
+library(cluster)
+library(caret)
+library(rpart)
+
+```
+
+## Algunas características del dataset
+
+Es una base Excel consolidada para el período 2019-2022 con los datos provenientes del Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica, desarrollado en forma anual por la Dirección Nacional de Política Criminal en materia de Justicia y Legislación Penal del Ministerio de Justicia y Derechos Humanos de la Nación. Por el momento, no está disponible para consulta pública en formato abierto, pero sí se generan informes anuales que se publican en formato PDF en: <https://www.argentina.gob.ar/justicia/politicacriminal/estadisticas/publicaciones>
+
+Tiene 44.026 observaciones (filas) y 19 variables (columnas), entre las cuales se pueden mencionar las siguientes: género de las personas privadas de libertad con prisión domiciliaria, si se encuentran bajo el régimen de vigilancia electrónica o no, nacionalidad, edad, provincia, motivo de incorporación al régimen de prisión domiciliaria, tipo de delito por el cual la persona fue condenada, cantidad de hijos/as, etc.
+
+Es una base con variables numéricas y categóricas, que ya estaba codificada al momento de iniciar el análisis explotario de los datos. Por ello, trabajamos también con la planilla de relevamiento donde está bien detallada la codificación utilizada.
+
+```{r}
+Base_PrisDomGral <- read_excel("~/PP Y ML/Base_PrisDomGral.xlsx")
+```
+
+## **Exploración**
+
+```{r}
+dim (Base_PrisDomGral)
+  
+```
+
+```{r}
+head(Base_PrisDomGral)
+```
+
+```{r}
+str(Base_PrisDomGral)
+
+```
+
+
+```{r}
+#Crear variable género2 con nombre de etiquetas
+Base_PrisDomGral$Genero2 <- Base_PrisDomGral$Genero
+Base_PrisDomGral$Genero2 <- recode_factor(Base_PrisDomGral$Genero2, 
+                                   "1"="Varon",
+                                   "2"="Mujer",
+                                   "3"="Mujer Trans",
+                                   "4"="Varon Trans")
+```
+
+### **Visualizaciones**
+
+### **Cantidad de personas con prisión domiciliaria según género para el año 2022.**
+
+```{r}
+#Tabla con totales y %
+library(gt)
+Base_PrisDomGral|>
+  filter(AnioRelev=="2022")|>
+  group_by(Genero2)|>
+  summarise(n=n())|>
+  mutate(Porcentaje = n/sum(n)*100)|>
+  gt() |> 
+  tab_header(title="Total personas con prision domiciliaria. Anio 2022")|> 
+  cols_label(Genero2= "Genero", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+
+```
+
+Este cuadro muestra la composición de la población con arresto domiciliario en 2022: los varones representan la mayoría con el 73% (8733 casos), mientras que las mujeres representan el 27%  (3265 casos) y las personas trans totalizan sólo 17 casos.
+
+```{r}
+#Gráfico circular distribución por género
+Base_PrisDomGral|>
+  filter(AnioRelev=="2022")|>
+  group_by(Genero2)|>
+  ggplot(aes(x="AnioRelev", y= "Genero2", fill=as.factor(Genero2)))+
+  geom_bar(stat = "identity")+   
+  coord_polar(theta = "y")+
+  geom_text(aes(label = Genero2), hjust = 8, colour = "black", size=3)+
+  guides(fill = guide_legend(title = "Género")) +
+  scale_fill_manual(values=c("#9BCD9B", "#FF8C69", "#F7DC6F", "#C39BD3"))+
+  theme_void()+
+  labs(title="Total personas con prision domiciliaria por género. Año 2022", 
+  caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.")
+```
+
+
+
+###  **Cantidad de personas con prisión domiciliaria según género, período 2019-2022.**
+
+
+```{r}
+Base_PrisDomGral|>
+  filter(Genero=="1")|>
+   group_by(AnioRelev)|>
+  summarise(n=n())|>
+  mutate(Porcentaje = n/sum(n)*100) |>
+  gt()|> 
+  tab_header(title="Total de varones con prision domiciliaria")|> 
+  cols_label(AnioRelev= "Anio", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+```
+
+Aquí lo que podemos observar es un incremento desde 2019 a 2020 en la cantidad de varones con prisión domiciliaria. Suponemos que ese incremento tuvo que ver con la pandemia y la reducción del hacinamiento en cárceles para el caso de personas privadas de libertad por delitos no violentos con los motivos de otorgamiento previstos en la Ley 24.660 de Ejecución de la Pena Privativa de Libertad y modificatorias.
+
+```{r}
+Base_PrisDomGral|>
+  filter(Genero=="2")|>
+   group_by(AnioRelev)|>
+  summarise(n=n())|>
+  mutate(Porcentaje = n/sum(n)*100) |>
+  gt()|> 
+  tab_header(title="Total de mujeres con prision domiciliaria")|> 
+  cols_label(AnioRelev= "Anio", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+
+```
+
+En esta tabla también podemos observar un incremento en la cantidad de mujeres con prisión domiciliaria desde 2019 a 2020, aunque en menor proporción que en el caso de los varones. También en este caso pensamos que dicho aumento está relacionado con la pandemia y casos de mujeres madres de niños/as o, en su defecto, con personas (con discapacidad o mayores de edad) a cargo.
+
+```{r}
+Base_PrisDomGral|>
+  filter(Genero=="3")|>
+   group_by(AnioRelev)|>
+  summarise(n=n())|> 
+  mutate(Porcentaje = n/sum(n)*100) |>
+ gt()|> 
+ tab_header(title="Total de mujeres trans con prision domiciliaria")|> 
+ cols_label(AnioRelev= "Anio", 
+           n= "Total casos",
+          Porcentaje= "Porcentaje")
+```
+
+```{r}
+Base_PrisDomGral|>
+  filter(Genero=="4")|>
+   group_by(AnioRelev)|>
+  summarise(n=n())|>
+  mutate(Porcentaje = n/sum(n)*100) |>
+  gt()|> 
+  tab_header(title="Total de varones trans con prision domiciliaria")|> 
+  cols_label(AnioRelev= "Anio", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+```
+
+Mujeres y varones trans representan muy pocos casos en el período 2019-2022, más allá de que creemos que es muy importante que esos casos, aunque pocos, se visibilicen en la estadística.
+
+
+```{r}
+#Definición de etiquetas de ejes x - y
+etiquetas_genero <- c("Varones", "Mujeres", "M.Trans", "V. Trans")
+```
+
+```{r}
+Base_PrisDomGral|>
+  ggplot(aes(x=Genero, fill=as.factor(Genero)), alpha= 0.8)+
+  geom_bar() +
+    facet_wrap(~ AnioRelev, nrow = 2)+
+  labs(title = "Cantidad total de personas con prisión domiciliaria por género y año", x= "Género", y="Frecuencia",caption =  "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.")+
+  scale_x_discrete(label= etiquetas_genero,
+                   limits = c("1", "2", "3", "4"))+
+  scale_y_continuous(limits = c(0, 10000),
+                     breaks = seq(2000, 10000, by=2000))+
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  scale_fill_manual(values = c("#9BCD9B", "#FF8C69", "#F7DC6F", "#C39BD3"),
+                    labels = c("Varones", "Mujeres", "Mujeres Trans", "Varones Trans"))+
+  guides(fill = guide_legend(title = "Género")) +
+  geom_text(aes(label = ..count..), stat = "count", vjust = 2, colour = "white", size=3)
+  
+```
+
+
+En este gráfico de paneles se condensan dos aspectos señalados anteriormente. Por un lado, de 2020 a 2021 se produjo un incremento significativo de la cantidad de personas con prisión domiciliaria, lo cual suponemos está vinculado con la pandemia (ASPO) y la identificación de casos con las condiciones previstas en la ley para que los jueces otorguen esta modalidad morigerada de cumplimieto de la pena. Por otro lado, se ve con claridad que los varones representan la mayoría del total de personas con arresto domiciliario a lo largo del período 2019-2022. 
+Por otro lado, si tomamos en cuenta los datos del Censo Penitenciario 2022 en unidades carcelarias podemos establecer la siguiente comparación en el caso de las mujeres: las mujeres privadas de libertad en cárceles representan el 4% del total de las personas censadas en unidades penitenciarias de todo el país mientras que las mujeres con arresto domiciliario en 2022 representan el 27% del total (el índice se incrementa notablemente en términos comparativos con el Censo Penitenciario 2022).
+
+```{r}
+Base_PrisDomGral|>
+  ggplot(aes(x= AnioRelev, fill=as.factor(Genero2)), alpha= 0.8)+
+  geom_bar() +
+    facet_wrap(~ Genero2, nrow = 2, scales = "free") +
+  labs(title = "Evolución anual de la cantidad de personas con prisión domiciliaria por género", x= "Género", y="Frecuencia",caption =  "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.")+
+  #scale_x_discrete(label= etiquetas_genero,
+ #                  limits = c("1", "2", "3", "4"))+
+  #scale_y_continuous(limits = c(0, 10000),
+  #                   breaks = seq(2000, 10000, by=2000))+
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  scale_fill_manual(values = c("#9BCD9B", "#FF8C69", "#F7DC6F", "#C39BD3"),
+                    labels = c("Varones", "Mujeres", "Mujeres Trans", "Varones Trans"))+
+  guides(fill = guide_legend(title = "Género"))+
+  geom_text(aes(label = ..count..), stat = "count", vjust = 2, colour = "white", size=3)
+  
+```
+
+
+```{r}
+#Gráfico unificado
+
+ggplot(Base_PrisDomGral, aes(x = AnioRelev, fill = as.factor(Genero))) + 
+  geom_bar(position="dodge", alpha=0.8)+
+  labs(title = "Cantidad de personas con prisión domiciliaria por género y año relevado", x ="Año Relevado",y = "Frecuencia", caption =  "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.")+
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  scale_y_continuous(limits = c(0, 9000),
+                     breaks = seq(1000, 9000, by=2000))+
+  scale_fill_manual(values = c("#9BCD9B", "#FF8C69", "#F7DC6F", "#C39BD3"),
+                    labels = c("Varones", "Mujeres", "Mujeres Trans", "Varones Trans"))+
+  guides(fill = guide_legend(title = "Género")) +
+  geom_text(aes(label = ..count..), stat = "count", vjust = 1, colour = "white", size=3,position = position_dodge(0.9))
+
+```
+
+```{r}
+#subset mujeres (No deberíamos incluir a las mujeres trans también?) Nop, criterio INDEC
+Base_PrisDom_Mujeres<-Base_PrisDomGral|>
+  filter(Genero=="2")
+```
+
+### **Cantidad de personas con prisión domiciliaria según nacionalidad**
+
+```{r}
+#Crear variable Nacion2 con nombre de etiquetas
+Base_PrisDomGral$Nacion2 <- Base_PrisDomGral$Nacion
+Base_PrisDomGral$Nacion2 <- recode_factor(Base_PrisDomGral$Nacion2, 
+                                   "1"="Argentina",
+                                   "2"="Boliviana",
+                                   "3"="Brasileña",
+                                   "4"="Chilena",
+                                   "5"= "Paraguaya",
+                                   "6"= "Uruguaya",
+                                   "7"="Peruana",
+                                   "8" = "Colombiana",
+                                   "9"= "Ecuatoriana",
+                                   "10" = "Española",
+                                   "11" = "Italiana",
+                                   "12"= "Inglesa",
+                                   "13"= "China",
+                                   "14" = "Sudafricana",
+                                   "15"= "Nigeriana",
+                                   "16" = "Otras")
+
+```
+
+
+```{r}
+#Tabla por nacionalidad
+Base_PrisDomGral|>
+  filter(AnioRelev=="2022")|>
+  group_by(Nacion2)|>
+  summarise(n=n())|>
+  arrange(desc(n))|>
+  mutate(Porcentaje = n/sum(n)*100)|>
+  gt()|> 
+  tab_header(title="Total personas con arresto domiciliario por nacionalidad")|> 
+  cols_label(Nacion2 = "Nacionalidad", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+
+```
+
+Esta muestra que la mayoría de las personas con arresto domiciliario son de nacionalidad argentina (92%). El 8% restante presenta nacionalidad extranjera, con mayor representatividad de países limítrofes (Bolivia, Brasil y Chile).
+
+
+###  **Cantidad de personas con prisión domiciliaria según provincia/jurisdicción**
+
+```{r}
+#Tabla por provincias
+Base_PrisDom_Mujeres|>
+  filter(AnioRelev=="2022")|>
+  group_by(nomProvincia)|>
+  summarise(n=n())|>
+  arrange(desc(n))|>
+  mutate(Porcentaje = n/sum(n)*100)|>
+  gt()|> 
+  tab_header(title="Total mujeres con arresto domiciliario por provincia")|> 
+  cols_label(nomProvincia = "Provincia", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+```
+
+Esta tabla muestra claramente que la Provincia de Buenos Aires concentra la mayor cantidad de personas con prisión domiciliaria en 2022 (46% de los casos, 1503 en valores absolutos), seguida de organismos de jurisdicción federal con el 17% de los casos (549) y Córdoba con el 8% (266 casos).
+
+
+```{r}
+Base_PrisDom_Mujeres|>
+  filter(ConSinDisp=="1")|>
+  ggplot()+
+  geom_bar(aes(y=AnioRelev), fill= "#9BCD9B", alpha=0.8)+
+  labs (title ="Cantidad de mujeres con monitoreo electrónico por año y jurisdicción", x="Frecuencia", y="Año de Relevamiento", caption =  "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.")+
+  facet_wrap(~nomProvincia, nrow = 5)
+  
+```
+
+Este gráfico de paneles muestra que en el período 2019-2022 la mayor cantidad de casos de mujeres con arresto domiciliario y vigilancia electrónica (pulsera o tobillera) se concentra en la Provincia de Buenos Aires, seguido de los casos que están bajo la órbita de organismos federales y la Provincia de Mendoza.
+
+
+```{r}
+Base_PrisDom_Mujeres|>
+  filter(ConSinDisp=="2")|>
+  ggplot()+
+  geom_bar(aes(y=AnioRelev), fill="#FF8C69", alpha=0.8)+
+  labs (title ="Cantidad de Mujeres sin Monitoreo Electrónico por año y Jurisdicción", x="Frecuencia", y="Jurisdicción", caption =  "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.")+
+  facet_wrap(~nomProvincia,nrow = 5)
+```
+
+En consonancia con el gráfico anterior, la mayor cantidad de mujeres con arresto domiciliario y sin monitoreo electrónico se concentra en la Provincia de Buenos Aires para el período analizado, seguida de Córdoba, los organismos de jurisdicción federal, Mendoza y Salta. 
+
+###  **Cantidad de personas con prisión domiciliaria según Edad y Género**
+
+```{r}
+Base_PrisDomGral|>
+  filter(AnioRelev==2022)|>
+  group_by(Genero2)|>
+  summarise("Edad promedio"=mean(Edad), "Edad max"=max(Edad), "Edad min"=min(Edad))|>
+  gt()|> 
+  tab_header(title="Total de personas con prision domiciliaria segun genero y edad")
+```
+
+Esta tabla muestra que la edad promedio de los varones con arresto domiciliario (37 años) es mayor a la edad promedio de las mujeres (32 años) y muy superior a la edad promedio de los varones trans (20 años). El rango de variación entre edad máxima y mínima es amplio. El valor mínimo "0" representa casos donde no se ha podido registrar edad y la edad máxima -al menos en el caso de los varones- presuponemos que puede tener que ver con el caso de personas condenadas por delitos de lesa humanidad.
+
+```{r}
+# #Gráfico de edad y género
+# Base_PrisDomGral|>
+#   filter(AnioRelev=="2022")|>
+#   select(Genero2, Edad2, AnioRelev)|>
+#   group_by(Edad2)|>
+#   ggplot(aes(x=AnioRelev, y= Genero2, fill= as.factor(Edad2)))+
+#   geom_bar(stat = "identity")+   
+#  # coord_polar(theta = "y")+
+#   geom_text(aes(label = Edad2), hjust = 8, colour = "black", size=3)+
+#   guides(fill = guide_legend(title = "Rango etario")) +
+#   theme_minimal()+
+#   theme(panel.background = element_rect(fill = "#F2F2F2"))+
+#   labs(title="Total personas con prision domiciliaria por rango etario y genero. Año 2022", 
+#   caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.",
+#   x="",
+#   y="")
+```
+
+
+```{r}
+#Armar variable rango etario
+Base_PrisDomGral$Edad2 <- Base_PrisDomGral$Edad
+Base_PrisDomGral$Edad2 <- recode_factor(Base_PrisDomGral$Edad2, 
+                                   "0"="0-25",
+                                   "1"="0-25",
+                                   "2"="0-25",     
+                                   "3"="0-25",
+                                   "4"="0-25",
+                                   "5"="0-25",
+                                   "6"="0-25",
+                                   "7"="0-25",
+                                   "8"="0-25",
+                                   "9"="0-25",
+                                   "10"="0-25",
+                                   "11"="0-25",
+                                   "12"="0-25",
+                                   "13"="0-25",
+                                   "14"="0-25",
+                                   "15"="0-25",
+                                   "16"="0-25",
+                                   "17"="0-25",
+                                   "18"="0-25",
+                                   "19"="0-25",
+                                   "20"="0-25",
+                                   "21"="0-25",
+                                   "22"="0-25",
+                                   "23"="0-25",
+                                   "24"="0-25",
+                                   "25"="0-25",
+                                   
+                                   "26"="26-35",
+                                   "27"="26-35",
+                                   "28"="26-35",
+                                   "29"="26-35",
+                                   "30"="26-35",
+                                   "31"="26-35",
+                                   "32"="26-35",
+                                   "33"="26-35",
+                                   "34"="26-35",
+                                   "35"="26-35",
+                                   
+                                   "36"="36-55",
+                                   "37"="36-55",
+                                   "38"="36-55",
+                                   "39"="36-55",
+                                   "40"="36-55",
+                                   "41"="36-55",
+                                   "42"="36-55",
+                                   "43"="36-55",
+                                   
+                                   "44"="36-55",
+                                   "45"="36-55",
+                                   "46"="36-55",
+                                   "47"="36-55",
+                                   "48"="36-55",
+                                   "49"="36-55",
+                                   "50"="36-55",
+                                   "51"="36-55",
+                                   "52"="36-55",
+                                   "53"="36-55",
+                                   "54"="36-55",
+                                   "55"="36-55",
+                                   
+                                   
+                                   "56"="56-75",
+                                   "57"="56-75",
+                                   "58"="56-75",
+                                   "59"="56-75",
+                                   "60"="56-75",
+                                   "61"="56-75",
+                                   "62"="56-75",
+                                   "63"="56-75",
+                                   "64"="56-75",
+                                   "65"="56-75",
+                                   "66"="56-75",
+                                   "67"="56-75",
+                                   "68"="56-75",
+                                   "69"="56-75",
+                                   "70"="56-75",
+                                   "71"="56-75",
+                                   "72"="56-75",
+                                   "73"="56-75",
+                                   "74"="56-75",
+                                   "75"="56-75",
+                                   
+                                   "76"="76-99",
+                                   "77"="76-99",
+                                   "78"="76-99",
+                                   "79"="76-99",
+                                   "80"="76-99",
+                                   "81"="76-99",
+                                   "82"="76-99",
+                                   "83"="76-99",
+                                   "84"="76-99",
+                                   "85"="76-99",
+                                   "86"="76-99",
+                                   "87"="76-99",
+                                   "88"="76-99",
+                                   "89"="76-99",
+                                   "90"="76-99",
+                                   "91"="76-99",
+                                   "92"="76-99",
+                                   "93"="76-99",
+                                   "94"="76-99",
+                                   "95"="76-99",
+                                   "96"="76-99",
+                                   "97"="76-99",
+                                   "98"="76-99",
+                                   "99"="76-99")
+                                   
+```
+
+
+
+```{r}
+#histograma frecuencia según rango etario y género
+Base_PrisDomGral|>
+  group_by(Edad2)|>
+  ggplot(aes(x=AnioRelev, fill=Edad2)) +
+  geom_histogram(alpha=0.6, 
+                 position = 'identity',
+                 ylab= "Frecuencia")+
+  facet_wrap(~Genero2, scales = "free")+
+  theme_minimal()+
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  labs(title="Total personas con prision domiciliaria por rango etario y genero. 2019-2022", 
+       caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.",
+       y= "",
+       x="")+
+  scale_y_continuous(limits = c(0, 3000),
+                     breaks = seq(500, 9000, by=1000))+
+  guides(fill = guide_legend(title = "Rango etario"))
+  
+```
+
+##  **Cantidad de personas con prisión domiciliaria según tipo de delito** 
+
+```{r}
+#tabla tipo de delito. Año 2022
+Base_PrisDomGral|>
+  filter(AnioRelev=="2022")|>
+  group_by(TipoDel1)|>
+  summarise(n=n())|>
+  mutate(Porcentaje = n/sum(n)*100)|>
+  arrange(desc(n))|>
+  gt()|> 
+  tab_header(title="Personas con prision domiciliaria segun tipo de delito cometido. Anio 2022")|> 
+  cols_label(TipoDel1 = "Tipo de delito", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+
+```
+
+Según se observa en esta tabla, los principales delitos de las personas con prisión domiciliaria en 2022 fueron "INFRACCION LEY 23737 (sin poder discriminar)" (18%), "Infracción a la ley 23737 Comercialización" (13%) "Robo y/o tentativa de robo (13%), y "Violaciones/Abuso sexual" (12%).
+
+```{r}
+#tabla tipo de delito. Mujeres. Año 2022
+Base_PrisDom_Mujeres|>
+  filter(AnioRelev=="2022")|>
+  group_by(TipoDel1)|>
+  summarise(n=n())|>
+  mutate(Porcentaje = n/sum(n)*100)|>
+  arrange(desc(n))|>
+  gt()|> 
+  tab_header(title="Mujeres con prision domiciliaria segun tipo de delito cometido. Anio 2022")|> 
+  cols_label(TipoDel1 = "Tipo de delito", 
+             n= "Total casos",
+             Porcentaje= "Porcentaje")
+```
+
+A partir de esta tabla se observa con claridad que más del 50% de las mujeres con prisión domiciliaria en 2022 están privadas de libertad por delitos no violentos vinculados a la Ley N° 23.737 de Estupefacientes: el código 24 corresponde a "INFRACCIÓN LEY 23.737 (sin discriminar)" y reúne 1003 mujeres (31% de un total de 3265); el código 242 corresponde a  "INFRACCIÓN Ley 23737 – COMERCIALIZACIÓN" y reúne 756 casos (23%). En orden de prelación sigue el código 15 que corresponde a "Robo y/o tentativa de robo"que reúne 343 casos (10%).
+Por otro lado, vale destacar que se da la misma tendencia en años anteriores.
+
+
+```{r}
+#Gráfico de barras acumulada según motivo de delito y género. 2022
+Base_PrisDomGral|>
+  filter(AnioRelev=="2022")|>
+  group_by(TipoDel1)|>
+  ggplot(aes(x=AnioRelev, y=Genero2, fill= as.factor(TipoDel1)))+
+  geom_bar(stat = "identity")+
+  geom_text(aes(label = "TipoDel1" ), vjust = 1, colour = "black", size=3)+
+  guides(fill = guide_legend(title = "Tipo de delito")) +
+  theme_minimal()+
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  labs(title="Personas con prision domiciliaria según tipo de delito. Año 2022", 
+  caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.",
+  x="",
+  y="")
+```
+
+
+
+
+```{r}
+#Gráfico de barras acumulada según motivo de delito y género. 2019-2022
+Base_PrisDom_Mujeres|>
+  group_by(TipoDel1)|>
+    ggplot(aes(x= AnioRelev, y= AnioRelev, fill=as.factor(TipoDel1)))+
+  geom_bar(stat = "identity")+
+   geom_text(aes(label = "AnioRelev" ),vjust = 1, colour = "black", size=3)+
+  guides(fill = guide_legend(title = "Tipo de delito")) +
+  theme_minimal()+
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  labs(title="Mujeres con prisión domiciliaria según tipo de delito y año", 
+  caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.",
+  x="",
+  y="")
+  
+```
+
+En este gráfico se ve claramente cuál es la incidencia de los delitos vinculados a estupefacientes en la población de mujeres con arresto domiciliaria. Lo que se visualiza como degradé en violeta y rosa se vincula principalemente a los siguientes delitos:
+24- INFRACCION LEY 23737 (sin poder discriminar)
+240- Infracción Ley 23737 – TENENCIA PARA CONSUMO
+241- Infracción Ley 23737 – TENENCIA SIMPLE
+242- Infracción Ley 23737 – COMERCIALIZACION
+244- Infracción Ley  23737 – OTROS
+30- Contrabando de Estupefacientes
+Las mujeres con derechos vulnerados suelen ser los últimos eslabones de la cadena en la comercialización y el contrabando de estupefacientes, al cual recurren con medio de subsistencia (suelen ser jefas de hogar)
+
+
+##  **Cantidad de personas con prisión domiciliaria según motivo de incorporación y género**
+
+                                   
+```{r}
+#Armar variable motivo de incorporacion
+Base_PrisDomGral$MotIncorp2 <- Base_PrisDomGral$MotIncorp
+Base_PrisDomGral$MotIncorp2 <- recode_factor(Base_PrisDomGral$MotIncorp2, 
+                                   "0"="Sin dato",
+                                    "1"="Razones de salud",
+                                   "2"="Personas a cargo",
+                                   "3"="Mayor de 70 años",
+                                   "4"="Mujeres embarazadas",
+                                   "5"="Hijos/as menores de 5 años",
+                                   "6"="Otros motivos")
+```
+
+
+                                   
+```{r}
+#Gráfico de barras acumulada según motivo de incorporación y género. 2022
+
+Base_PrisDomGral|>
+  filter(AnioRelev=="2022")|>
+  group_by(MotIncorp2)|>
+  ggplot(aes(x=AnioRelev, y= Genero2 , fill= as.factor(MotIncorp2)))+
+  geom_bar(stat = "identity")+   
+  geom_text(aes(label = MotIncorp2), hjust = 8, colour = "black", size=3)+
+  guides(fill = guide_legend(title = "Motivo de incorporación")) +
+  theme_minimal()+
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  labs(title="Total personas con prision domiciliaria según motivo de incorporación y genero. Año 2022", 
+  caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.",
+  x="",
+  y="")
+```
+
+Este gráfico muestra que en 2022, los motivos de incorporación de las mujeres al régimen de arresto domiciliario aparecen mayormente vinculados a que son madres de niños/as menores de 5 años(código 5), a que tienen personas a cargo (código 2) y a situaciones de embarazo (código 4), sin tener en cuenta los códigos 0 y 6 ("sin especificar" y "otros motivos" respectivamente). En otras palabras, el ingreso al régimen de arresto domiciliario se vincula a la distribución social de las tareas de cuidado (rol de cuidadoras)
+En cambio, en el caso de los varones las razones de salud (código 1), tener personas a cargo (código 2) y situaciones de personas de más de 70 años (código 3) aparecen como motivos preponderantes en el otorgamiento del arresto a domicilio.
+
+```{r}
+ggplot(Base_PrisDom_Mujeres, (aes(x=as.factor(MotIncorp), fill=as.factor(MotIncorp))))+
+  geom_bar(fill="#FF8C69", alpha=0.8)+
+  labs(x="Motivo de incorporación", 
+       y="Frecuencia",
+       title = "Motivo de incorporación de las mujeres al arresto domiciliario",
+       caption = "0 = sin info,
+                  1 = Razones de salud 
+                  2 = Personas a cargo
+                  3 = Mayor de 70
+                  4 = Embarazadas
+                  5 = Hijos/as menores de 5 anios
+                  6 = Otros motivos") +
+  facet_grid(~AnioRelev)+
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+    guides(fill = guide_legend(title = "Motivo de incorporación")) +
+  #scale_fill_manual(labels = c("1", "2", "3", "4", "5", "6", "7"))+
+  #guides(fill = guide_legend(title = "Tíulo"))+
+  scale_y_continuous(limits = c(0, 1400),
+                     breaks = seq(250, 1500, by=250))+
+  geom_text(aes(label = ..count..), stat = "count", vjust = 2, colour = "white", size=2)
+```
+
+
+##  **Cantidad de personas con prisión domiciliaria según situación procesal y género**
+
+```{r}
+#Armar variable motivo de incorporacion
+Base_PrisDomGral$SituacProc2 <- Base_PrisDomGral$SituacProc
+Base_PrisDomGral$SituacProc2 <- recode_factor(Base_PrisDomGral$SituacProc2, 
+                                   "1"="Condenado/a",
+                                   "2"="Procesado/a",
+                                   "3"="No determinado")
+```
+
+```{r}
+#Gráfico de barras acumulada según situación procesal y género. 2022
+Base_PrisDomGral|>
+  filter(AnioRelev=="2022")|>
+  group_by(SituacProc2)|>
+  ggplot(aes(x=AnioRelev, y= Genero2 , fill= as.factor(SituacProc2)))+
+  geom_bar(stat = "identity")+   
+ # coord_polar(theta = "y")+
+  geom_text(aes(label = SituacProc2), hjust = 8, colour = "black", size=3)+
+  theme(panel.background = element_rect(fill = "#F2F2F2"))+
+  guides(fill = guide_legend(title = "Situación procesal")) +
+  theme_minimal()+
+  labs(title="Total personas con prision domiciliaria según situacion procesal y genero. Año 2022", 
+  caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.",
+  x="",
+  y="")
+```
+
+Este gráfico muestra que la mayor parte de las personas con prisión domiciliaria no tiene condena.
+
+```{r}
+#Gráfico de barras acumulada según situación procesal y género. 2022
+# Base_PrisDomGral|>
+#   select(SituacProc, AnioRelev, Genero2)|>
+#   Filter(AnioRelev==2022)|>
+#   group_by(SituacProc)|>
+#   ggplot(aes(x=AnioRelev, y= Genero2 , fill= as.factor(SituacProc)))+
+#   geom_bar(stat = "identity")+   
+#   coord_polar(theta = "y")+
+#   geom_text(aes(label = SituacProc), hjust = 8, colour = "black", size=3)+
+#   guides(fill = guide_legend(title = "Situación procesal")) +
+#   theme_minimal()+
+#   labs(title="Total personas con prision domiciliaria según situacion procesal y genero. Año 2022", 
+#   caption = "Fuente:Relevamiento Nacional de Personas con Prisión Domiciliaria, con y sin vigilancia electrónica 2019-2022.") 
+#  
+```
+
+```{r}
+Base_PrisDom_Mujeres|>
+  ggplot()+
+  geom_histogram(aes(x=SituacProc), bins = 3, fill="#FF8C69", alpha=0.8)+
+    labs(title="Situación procesal de las mujeres con arresto domiciliario", x="Situación Procesal", y="Frecuencia", caption =  " 1 = condenado, 2 = procesado, 3 = no determinado") +
+   facet_grid(~AnioRelev)+
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "#F2F2F2"))
+
+```
+Este gráfico de barras muestra la situación procesal de las mujeres con arresto domiciliario para el período 2019-2022. Se trata de mujeres que en su mayoría no tiene condena. En ese aspecto, se identifica una tendencia ascendente para el período analizado.
+
+## **Clusterización**
+
+```{r}
+#Iniciamos el proceso intentando graficar presuntas correlaciones entre variables.
+#Pero antes: creamos otro subset para tomar en cuenta únicamente los registros de 2022.
+
+Base_PrisDomGral_2022<-Base_PrisDomGral|>
+  filter (AnioRelev==2022)
+```
+
+```{r}
+#Utilizamos gráficos de dispersión para identificar posibles correlaciones entre variables y grupos.
+Base_PrisDomGral_2022 |>
+  filter(SituacProc2=="Condenado/a")|>
+ggplot(aes(Genero2, DuracCondA))+
+  geom_point(aes(color=Genero2))+
+  scale_y_continuous(limits = c(0,100),
+                     expand = c(0,0),
+                     breaks = c(0,10,20,30,40,50,60,70,80,90,100))+
+  scale_x_discrete()+
+  labs(title="Relación entre género y duración de la condena en años de las personas c/prisdom - 2022", caption= "Fuente:Relevamiento Nacional Prisión Domiciliaria 2022", x="Género", y="Duración de la condena en anios")+
+  theme_minimal()
+```
+```{r}
+#Decidimos observar más en detalle la cantidad de años promedio, valores máximo y mínimo de #condena por género, teniendo en cuenta que las personas con arresto domiciliario #condenadas no representan el porcentaje mayoritario del total del relevamiento. El gráfico #anterior no sirve demasiado.
+
+Base_PrisDomGral_2022|>
+  filter(SituacProc2=="Condenado/a")|>
+  group_by(Genero2)|>
+  summarise("condena promedio"=mean(DuracCondA), "condena max"=max(DuracCondA), "condena  min"=min(DuracCondA))|>
+  gt()|>
+  tab_header(title="Personas con arresto domiciliario por género y cantidad de años de condena")
+
+```
+Considerando únicamente personas condenadas (sin incluir las categorías "procesado/a" y "no determinado") el tiempo promedio de reclusión en varones es de 5 años y el de las mujeres 4 años y medio aprox., es decir que se trata de condenas cortas. En el caso de las mujeres trans, el promedio es aún menor: 1 año (año y medio).
+
+```{r}
+#Boxplot años de condena
+Base_PrisDomGral_2022 |>
+  filter(SituacProc2=="Condenado/a")|>
+  ggplot(aes(Genero2,DuracCondA)) +
+    geom_boxplot(aes(color = Genero2), show.legend = FALSE) +
+   scale_y_continuous(limits = c(0,40),
+                     expand = c(0,0),
+                     breaks = c(0,5,10,15,20,25,30, 35,40))+
+  scale_x_discrete()+
+    labs(title = "Boxplot años de condena por género", 
+         x = "Género",
+         y = "Condena en anios") +
+  scale_color_brewer(palette = "Dark2")
+
+
+```
+Para realizar este gráfico tomamos la decisión de acotar los límites del eje y de 0 a 40 años con la intención de eliminar dos valores atípicos correspondientes a la cantidad máxima de 99 años de condena (perpetua) para la categorías varón y mujer de la variable género. En el caso de las mujeres se puede apreciar cómo la mediana se ubica en los 4 años de condena y la variación intercuartil entre 0 y 5 años.
+
+```{r}
+#Armamos variable reagrupada para Tipo de Delito, con la intención de ver si hay #correlación entre género y tipo de delito.
+Base_PrisDomGral$TipoDel1bis <- Base_PrisDomGral$TipoDel1
+Base_PrisDomGral$TipoDel1bis <- recode_factor(Base_PrisDomGral$TipoDel1bis, 
+                                   "1"="Delitos c/ las personas",
+                                   "2"="Delitos c/ las personas",
+                                   "3"="Delitos c/ las personas",
+                                   "4" = "Delitos c/ las personas",
+                                   "5"= "Delitos c/ las personas",
+                                   "6" = "Delitos c/ las personas",
+                                   "7"= "Delitos c/ las personas",
+                                   "8"="Delitos c/ la integr sexual",
+                                   "9"= "Delitos c/ la integr sexual",
+                                   "10" = "Delitos c/ la libertad",
+                                   "11"= "Delitos c/ la libertad",
+                                   "12" = "Delitos c/ la libertad",
+                                   "13" = "Delitos c/ la libertad",
+                                   "14" = "Delitos c/ la prop",
+                                   "15"= "Delitos c/ la prop",
+                                   "16"= "Delitos c/ la prop",
+                                   "17"= "Delitos c/ la prop",
+                                   "18"= "Delitos c/ la prop",
+                                   "19" = "Delitos c/ la prop",
+                                   "20"= "Delitos c/la prop",
+                                   "21"= "Delitos c/la prop",
+                                   "22"= "Delitos c/ la prop",
+                                   "23"= "Delitos c/ la prop",
+                                   "24"= "Infracción Ley 23737",
+                                   "240"="Infracción Ley 23737",
+                                   "241"= "Infracción Ley 23737",
+                                   "242"= "Infracción Ley 23737",
+                                   "243" = "Infracción Ley 23737",
+                                   "244"= "Infracción Ley 23737",
+                                  "25" = "Infracción Ley Penal Tributaria",
+                                  "26"= "Incumplimiento de deberes",
+                                  "27" = "Otros delitos Leyes Especiales",
+                                  "28" = "Contravenciones",
+                                  "29" = "Lesa Humanidad",
+                                  "30" = "Contrabando Estupefacientes")
+```
+
+```{r}
+#Probamos gráfico de puntos para las variables Género con codificación numérica y Tipo de #delito1 pero no es viable por el tipo de variables.
+#Probamos ahora correlacionar género de las personas con arresto domiciliario y cantidad de hijos
+
+Base_PrisDomGral_2022 |>
+ggplot(aes(Genero2, CantHijos))+
+  geom_point(aes(color=Genero2))+
+  scale_y_continuous(limits = c(0,100),
+                     expand = c(0,0),
+                     breaks = c(0,10,20,30,40,50,60,70,80,90,100))+
+  scale_x_discrete()+
+  labs(title="Relación entre género y cantidad hijos/as de las personas c/prisdom - 2022", caption= "Fuente:Relevamiento Nacional Prisión Domiciliaria 2022", x="Género", y="Cantidad de Hijos")+
+  theme_minimal()
+
+
+```
+Este gráfico no resulta muy claro y nos marca valores atípicos cerca de 100, lo cual indica la presencia de un número que codifica los casos en los que no se ha podido relevar la cantidad de hijos/as
+
+```{r}
+Base_PrisDomGral_2022|>
+  filter(CantHijos<99)|>
+  group_by(Genero2)|>
+  summarise("hijos/as promedio"=mean(CantHijos), "hijos/as max"=max(CantHijos), "hijos/as  min"=min(CantHijos))|>
+  gt()|>
+  tab_header(title="Personas con arresto domiciliario por género y cantidad de años de hijos/as")
+
+```
+En esta tabla vemos que filtrando los valores "99" (sin información), las mujeres con arresto domiciliario tienen mayor promedio de hijos/as (2), que los varones (1). 
+
+
+```{r}
+#Boxplot cantidad de hijos/as de personas con arresto domiciliario por género
+Base_PrisDomGral_2022 |>
+  filter(CantHijos<99)|>
+  ggplot(aes(Genero2,CantHijos)) +
+    geom_boxplot(aes(color = Genero2), show.legend = FALSE) +
+   scale_y_continuous(limits = c(0,32),
+                     expand = c(0,0),
+                     breaks = c(0,4,8,12,16,20,24,28,32))+
+  scale_x_discrete()+
+    labs(title = "Boxplot cantidad de hijos/as por género", 
+         x = "Género",
+         y = "Cantidad de hijos/as") +
+  scale_color_brewer(palette = "Dark2")
+```
+Este gráfico de cajas nos muestra que en el caso de las mujeres con arresto domiciliario la mediana se ubica en 2 hijos/as y la variación intercuartil entre 1 y 3 hijos/as. En el caso de los varones la mediana se ubica en 1. Tal y como hicimos en el boxplot anterior, no visualizamos valores atípicos.
+
+
+##**K-Means**
+
+```{r}
+#Eliminamos valores NA porque nos generó error el código, al querer correr el Cluster K2
+PrisDom_2022_sinNA<-na.omit(Base_PrisDomGral)|>
+  filter(AnioRelev==2022)
+
+## Leer el archivo Excel
+#datos <- read_excel("ruta_del_archivo.xlsx")
+
+# Eliminar NA/NAN/INF
+#datos_limpio <- datos %>% 
+ # na.omit()  # Eliminar filas con NA/NAN/INF
+
+# Guardar el archivo limpio
+#write_xlsx(datos_limpio, "archivo_limpio.xlsx")
+
+#Eliminar NA
+#datos_sin_na <- na.omit(datos)
+
+# Reemplazar NA con ceros
+#datos_reemplazados <- replace(datos, is.na(datos), 0)
+
+## Ejemplo de código para completar casos
+##df <- data.frame(
+##  A = c(1, 2, NA, 4, 5),
+##  B = c(NA, 2, 3, 4, 5))
+
+# Identify complete cases
+#complete_rows <- df[complete.cases(df), ]
+
+# View the complete cases
+#complete_rows
+
+```
+
+```{r}
+##Ejemplos para completar NA y eliminar valores NAN
+# Create a vector with NaN values
+#y <- c(1, 2, NaN, 4, 5)
+# Identify NaN values
+#is_nan <- is.nan(y)
+# Replace NaN values with 0
+#y_zero <- ifelse(is_nan, 0, y)
+
+##Reemplazar valores inf
+## Create a vector with Inf values
+#z <- c(1, 2, Inf, 4, 5)
+# Identify Inf values
+#is_inf <- is.infinite(z)
+# Replace Inf values with 0
+#z_zero <- ifelse(is_inf, 0, z)
+
+```
+
+
+
+**Variables de interés:Vamos a tomar Tipo de Delito y Género**
+
+```{r}
+# Damos un parámetro K: # de centroides. 
+#Fijamos una semilla
+set.seed(999)
+
+```
+
+
+**modelo con un k=2**
+```{r}
+PrisDomCluster2 <- kmeans(PrisDom_2022_sinNA[,13:10], center=2, iter.max=10, nstart=20)
+PrisDomCluster2
+
+```
+
+**modelo con un k=3**
+```{r}
+PrisDomCluster3 <- kmeans(PrisDom_2022_sinNA[,13:10], center=3, iter.max=10, nstart=20)
+PrisDomCluster3
+
+```
+
+**modelo con un k=5**
+```{r}
+PrisDomCluster5 <- kmeans(PrisDom_2022_sinNA[,13:10], center=5, iter.max=10, nstart=20)
+PrisDomCluster5
+```
+```{r}
+#Lo que vimos en clase con Marianela:
+# el modelo arroja lo siguiente por default:
+
+# CLUSTER MEANS:
+# los puntos optimizados (medias) de cada cluster estimado
+# en torno a los cuales se agruparán los casos (las clases)
+
+## CLUSTERING VECTOR:
+# es el vector resultante (estimaciones o etiquetas predichas)
+
+# SUMAS de diferencias cuadradas dentro (within), por cluster: 
+# Suerte de variabilidad explicada/capturada
+
+# lista de componentes calculados a consultar:
+#VER: https://cran.r-project.org/web/packages/healthyR/vignettes/kmeans-umap.html
+
+```
+
+**Resultados**
+K=2
+Comparo 1 vector predicho y las etiquetas originales
+
+```{r}
+table(PrisDomCluster2$cluster, PrisDom_2022_sinNA$Genero2)
+clusplot(PrisDom_2022_sinNA, PrisDomCluster2$cluster, color=T, shade=T, labels=0, lines=0)
+```
+
+K=3
+Comparo 1 vector predicho y las etiquetas originales
+
+```{r}
+table(PrisDomCluster3$cluster, PrisDom_2022_sinNA$Genero2)
+clusplot(PrisDom_2022_sinNA, PrisDomCluster3$cluster, color=T, shade=T, labels=0, lines=0)
+```
+K=5
+Comparo 1 vector predicho y las etiquetas originales
+
+```{r}
+table(PrisDomCluster5$cluster, PrisDom_2022_sinNA$Genero2)
+clusplot(PrisDom_2022_sinNA, PrisDomCluster5$cluster, color=T, shade=T, labels=0, lines=0)
+
+```
+
+
+**Evaluamos resultados**
+**Método (gráfico) del codo:**
+
+
+```{r}
+#Generamos un bucle para iterar posibles K
+tot.withinss <- vector(mode="character", length=10)
+for (i in 1:15){
+PrisDomCluster <- kmeans(PrisDom_2022_sinNA[,13:10], center=i, nstart=20)
+tot.withinss[i] <- PrisDomCluster$tot.withinss}
+
+```
+
+```{r}
+# Ploteamos resultados para evaluar el K óptimo
+plot(1:15, tot.withinss, type="b", pch=19)
+```
+
+Corroboramos que no mejora el resultado obtenido después de 2 clusters. Nuestro óptimo es el K-2
+
+
+**Aplicación de algoritmo utilizado por el Estado Argentino**
+
+**Árbol de decisión: clasificación**
+
+Intentamos predecir el género en función de la cantidad de hijos/as y el tipo de delito cometido.
+
+```{r}
+# Primer paso: creamos un árbol de clasificación con nuestro subset de prisión #domiciliaria sin valores NA.
+
+arbol <- rpart(Genero2 ~ CantHijos + TipoDel1bis, data = PrisDom_2022_sinNA, method = "class")
+
+```
+
+
+```{r}
+# Visualizar el árbol
+plot(arbol)
+text(arbol)
+
+```
+
+
+## **Conclusiones**
+**Sobre el análisis exploratorio:**
+En principio, el análisis exploratorio nos ha permitido concluir lo siguiente:
+
+- Las personas privadas de libertad con arresto domiciliario en 2022 son en su mayoría varones de nacionalidad argentina. Representan el 73% del total.
+
+- Las mujeres representan un porcentaje minoritario: 27% del total. Este índice es mayor que el 4% que representan en unidades penitenciarias federales y provinciales de todo el país, según datos obrantes en el Sistema Nacional de Estadísticas sobre Ejecución de la Pena 2022.
+
+- Las personas trans representan sólo 17 casos en 2022 (tal vez estén subrepresentadas porque las categorías trans de la variable género son de reciente incorporación).
+
+- Se identificó un incremento de la población privada de libertad con arresto domiciliario de 2019 a 2020. Atribuimos ese aumento, entre otras cosas, al aislamiento preventivo y obligatorio impuesto por la pandemia del Covid 19 y a la sobrepoblación carcelaria (donde se ponderaron situaciones de embarazo, mujeres recluidas con sus hijos/as por delitos no violentos, mayores de 70 años, razones de salud, etc.)
+
+- La provincia de Buenos Aires es la jurisdicción que concentra mayor cantidad de personas con arresto domiciliario.
+
+- Otro dato relevante respecto de la situación procesal: la mayor parte de las personas con arresto domiciliario no tiene condena.
+
+- Con relación al motivo de incorporación a esta modalidad de arresto se verifica que las tareas de cuidado socialmente asignadas tiene un peso específico, dado que dichos motivos aparecen mayormente vinculados a que son madres de niños/as menores de 5 años, a que tienen personas a cargo y a situaciones de embarazo. 
+En cambio, en el caso de los varones las razones de salud, tener personas a cargo y ser mayor de 70 años aparecen como motivos preponderantes en el otorgamiento de este tipo de arresto.
+
+- Un dato que nos interesa destacar, en particular en el caso de las mujeres, es que los delitos vinculados con infracciones a la Ley 23.737 (Estupefacientes) y el contrabando tienen una incidencia relativa mayor que otro tipo de delitos por los cuales estas mujeres están privadas de libertad. Ello pareciera estar vinculado a situaciones de vulneración de derechos y pobreza estructural-multidimensional: estas mujeres suelen ser los eslabones más débiles de la cadena de comercialización/narcomenudeo, al cual recurren como medio de subsistencia (suelen ser además jefas de hogares monoparentales)
+
+**Sobre la clusterización**
+Tuvimos varias dificultades, logramos aplicar K-Means y hacer la prueba del codo pero realmente los resultados obtenidos no explican la variabilidad en un gran porcentaje: sólo en un 31%. Se verifica mucha superposición en los clusters. Atribuimos las dificultades mayormente al tipo de dataset elegido, que se destaca por una gran cantidad de variables categóricas. 
+En este marco, el K-2 sería nuestro óptimo.
+
+**Sobre aplicar un algoritmo que utilice el Estado Argentina**
+Encontramos serias dificultades para crear un árbol de clasificación en función de dataset que seleccionamos. Intentamos una crearlo con distintas combinaciones de variables pero obtuvimos resultados fallidos. Dejamos un ejemplo trunco en este archivo.

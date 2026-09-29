@@ -1,13 +1,65 @@
 ---
 title: "Mis Proyectos"
+sidebar:
+  style: "docked"
+  search: true
+  contents:
+    - section: "Proyectos"
+      contents:
+        - text: "Proyecto 1"
+          href: proyecto1.html
+        - text: "Proyecto 2"
+          href: proyecto2.html
+        - text: "Proyecto 3"
+          href: proyecto3.html
+        - text: "Proyecto 4"
+          href: proyecto4.html
+format:
+  html:
+    theme: flatly
+    css: styles.css
 ---
-
-# Mis Proyectos
 
 Aquí están algunos de mis proyectos destacados en R:
 
-1. **Análisis de Datos de Encuestas** – Visualizaciones y reportes estadísticos.
-2. **Dashboard Interactivo** – Creado con `Shiny` y visualizaciones `ggplot2`.
-3. **Proyectos de Investigación Social** – Limpieza de datos y análisis cuantitativo.
+::::::::::: columns
+:::: {.column width="1/3"}
+::: card
+![](imagenes/proyecto1.jpg)
 
-Cada proyecto puede incluir un enlace a código, informe o visualización interactiva.
+### Proyecto 1
+
+Análisis de datos cualitativos.
+:::
+::::
+
+:::: {.column width="1/3"}
+::: card
+![](imagenes/proyecto2.JPG)
+
+### Proyecto 2
+
+Dashboard interactivo.
+:::
+::::
+
+:::: {.column width="1/3"}
+::: card
+![](imagenes/proyecto3.jpg)
+
+### Proyecto 3
+
+Análisis de datos cualitativos con Text Mining.
+:::
+::::
+
+:::: {.column width="1/3"}
+::: card
+![](imagenes/proyecto5.jpg)
+
+### Proyecto 4
+
+Procesamiento y limpieza de base de datos.
+:::
+::::
+:::::::::::
